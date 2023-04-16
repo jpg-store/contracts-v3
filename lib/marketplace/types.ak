@@ -6,5 +6,5 @@ pub type VerificationKeyHash =
 
 pub type RoyaltyReceiver {
   owner: VerificationKeyHash,
-  percentage_thousands: Int
+  percentage_thousands: Int,
 }
