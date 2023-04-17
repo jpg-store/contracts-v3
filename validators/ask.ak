@@ -5,7 +5,7 @@ use marketplace/types.{Payout, TagDatum, VerificationKeyHash}
 use marketplace/utils.{get_own_input, is_correct_split, is_signed_by, calculate_marketplace_payout}
 
 type Datum {
-  is_private_listing: Option<VerificationKeyHash>,
+  private_buyer: Option<VerificationKeyHash>,
   payouts: List<Payout>,
   owner: VerificationKeyHash
 }
