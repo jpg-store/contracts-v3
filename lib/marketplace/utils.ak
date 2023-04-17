@@ -1,9 +1,10 @@
 use aiken/list
-use aiken/string
 use aiken/transaction.{NoDatum, Output, Transaction}
 use aiken/transaction/credential.{VerificationKeyCredential, Address}
 use aiken/transaction/value
-use marketplace/constants.{marketplace_pct, marketplace_vkh}
+use aiken/math
+
+use marketplace/constants.{marketplace_pct, marketplace_vkh, min_payout}
 use marketplace/types.{RoyaltyReceiver, VerificationKeyHash}
 
 pub fn is_correct_split(
@@ -38,8 +39,6 @@ pub fn is_correct_split(
           0,
         )
 
-      trace string.from_int(paid_acc)
-
       paid_to_leftover_receiver >= leftover
     }
     [head, ..tail] -> {
@@ -65,9 +64,11 @@ pub fn is_correct_split(
           0,
         )
 
+      let due_fee = math.max(head.percentage_thousands * amount_lovelace / 1000, min_payout)
+
       if
-      !(amount_paid_to_head >= head.percentage_thousands * amount_lovelace / 1000){
-        // The head receiver has not been paid enough 
+      !(amount_paid_to_head == due_fee){
+        // The head receiver has not been paid exactly the amount due 
         False
       } else {
         is_correct_split(
@@ -164,7 +165,7 @@ test is_correct_split_1() {
 test is_correct_split_scaling() {
   let test_amount =
     100000000
-  // 100 ADA
+
   let test_royalty_vkh =
     #"80f60f3b5ea7153e0acc7a803e4401d44b8ed1bae1c7baaad1a62a81"
   let test_seller_vkh =
@@ -196,7 +197,7 @@ test is_correct_split_scaling() {
 
   let seller_addr =
     Address {
-      payment_credential: VerificationKeyCredential(test_royalty_vkh),
+      payment_credential: VerificationKeyCredential(test_seller_vkh),
       stake_credential: None,
     }
 
@@ -222,6 +223,7 @@ test is_correct_split_scaling() {
       datum: NoDatum,
       reference_script: None,
     }
+
   let out_3 =
     Output {
       address: seller_addr,

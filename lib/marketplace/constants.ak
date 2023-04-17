@@ -5,3 +5,5 @@ pub const marketplace_vkh: VerificationKeyHash =
 
 pub const marketplace_pct: Int =
   20
+
+pub const min_payout: Int = 1000000

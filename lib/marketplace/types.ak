@@ -8,3 +8,4 @@ pub type RoyaltyReceiver {
   owner: VerificationKeyHash,
   percentage_thousands: Int,
 }
+

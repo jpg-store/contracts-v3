@@ -13,15 +13,13 @@ type Datum {
     BidPool(VerificationKeyHash)
 }
 
-type Redeemer {}
-
 validator {
 
-    fn spend(datum: Datum, redeemer: Redeemer, ctx: ScriptContext) -> Bool {
+    fn spend(datum: Datum, redeemer: Data, ctx: ScriptContext) -> Bool {
 
     }
 
-    fn mint(_, ctx: ScriptContext) -> Bool {
+    fn mint(redeemer: Data, ctx: ScriptContext) -> Bool {
         // - Token can only go to the script
         // - 
     }
