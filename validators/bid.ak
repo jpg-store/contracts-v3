@@ -1,26 +1,28 @@
-
 use aiken/transaction.{ScriptContext}
 use aiken/transaction/value.{PolicyId}
-
 use marketplace/types.{VerificationKeyHash}
 
-type Trait {}
+type Trait {
+}
 
 type Datum {
-    CollectionOffer(PolicyId, Option<Trait>)
-    AssetOffer()
+  CollectionOffer(PolicyId, Option<Trait>)
+  AssetOffer
 
-    BidPool(VerificationKeyHash)
+  BidPool(VerificationKeyHash)
 }
 
 validator {
+  fn spend(datum: Datum, redeemer: Data, ctx: ScriptContext) -> Bool {
 
-    fn spend(datum: Datum, redeemer: Data, ctx: ScriptContext) -> Bool {
+    
 
-    }
+    todo
+  }
 
-    fn mint(redeemer: Data, ctx: ScriptContext) -> Bool {
-        // - Token can only go to the script
-        // - 
-    }
+  fn mint(redeemer: Data, ctx: ScriptContext) -> Bool {
+    todo
+    // - Token can only go to the script
+    // - 
+  }
 }

@@ -1,14 +1,13 @@
 use aiken/list
 use aiken/transaction.{ScriptContext}
-use marketplace/constants.{marketplace_pct, marketplace_vkh}
-use marketplace/types.{RoyaltyReceiver, VerificationKeyHash}
-use marketplace/utils.{is_correct_split, must_be_signed_by}
+use marketplace/constants.{marketplace_vkh}
+use marketplace/types.{Payout, TagDatum, VerificationKeyHash}
+use marketplace/utils.{get_own_input, is_correct_split, is_signed_by, calculate_marketplace_payout}
 
 type Datum {
-  price: Int,
-  owner: VerificationKeyHash,
   is_private_listing: Option<VerificationKeyHash>,
-  royalty_receivers: Option<List<RoyaltyReceiver>>,
+  payouts: List<Payout>,
+  owner: VerificationKeyHash
 }
 
 type Redeemer {
@@ -21,28 +20,31 @@ validator {
   fn spend(datum: Datum, redeemer: Redeemer, ctx: ScriptContext) -> Bool {
     let tx =
       ctx.transaction
+    let own_input =
+      get_own_input(ctx)
+    let tag_datum =
+      TagDatum { output_reference: own_input.output_reference }
 
     when redeemer is {
       Buy -> {
-        let marketplace_receiver =
-          RoyaltyReceiver {
-            owner: marketplace_vkh,
-            percentage_thousands: marketplace_pct,
+        let marketplace_payout =
+          Payout {
+            vkh: marketplace_vkh,
+            amount_lovelace: calculate_marketplace_payout(datum.payouts, datum.owner),
           }
 
-        let all_receivers =
-          when datum.royalty_receivers is {
-            Some(receivers) ->
-              list.concat([marketplace_receiver], receivers)
-            None ->
-              [marketplace_receiver]
-          }
+        let all_payouts = list.concat([marketplace_payout], datum.payouts)
 
-        is_correct_split(datum.price, all_receivers, datum.owner, tx.outputs, 0)
+        is_correct_split(
+          all_payouts,
+          tx.outputs,
+          tag_datum,
+          0,
+        )
       }
 
       CancelOrUpdate ->
-        must_be_signed_by(tx, datum.owner)
+        is_signed_by(tx, datum.owner)
     }
   }
 }
