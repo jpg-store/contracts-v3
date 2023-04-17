@@ -1,13 +1,16 @@
 use aiken/list
 use aiken/transaction.{ScriptContext}
+
 use marketplace/constants.{marketplace_vkh}
 use marketplace/types.{Payout, TagDatum, VerificationKeyHash}
-use marketplace/utils.{get_own_input, is_correct_split, is_signed_by, calculate_marketplace_payout}
+use marketplace/utils.{
+  calculate_marketplace_payout, get_own_input, is_correct_split, is_signed_by,
+}
 
 type Datum {
   private_buyer: Option<VerificationKeyHash>,
   payouts: List<Payout>,
-  owner: VerificationKeyHash
+  owner: VerificationKeyHash,
 }
 
 type Redeemer {
@@ -29,17 +32,24 @@ validator {
         let marketplace_payout =
           Payout {
             vkh: marketplace_vkh,
-            amount_lovelace: calculate_marketplace_payout(datum.payouts, datum.owner),
+            amount_lovelace: calculate_marketplace_payout(
+              datum.payouts,
+              datum.owner,
+            ),
           }
 
-        let all_payouts = list.concat([marketplace_payout], datum.payouts)
+        let all_payouts =
+          list.push(datum.payouts, marketplace_payout)
 
-        is_correct_split(
-          all_payouts,
-          tx.outputs,
-          tag_datum,
-          0,
-        )
+        let correct_private_buyer =
+          when datum.private_buyer is {
+            Some(private_buyer) ->
+              is_signed_by(tx, private_buyer)
+            None ->
+              True
+          }
+
+        is_correct_split(all_payouts, tx.outputs, tag_datum, 0) && correct_private_buyer
       }
 
       CancelOrUpdate ->

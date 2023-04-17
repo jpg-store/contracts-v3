@@ -14,7 +14,6 @@ type Datum {
 
 validator {
   fn spend(datum: Datum, redeemer: Data, ctx: ScriptContext) -> Bool {
-
     todo
   }
 
