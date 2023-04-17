@@ -231,14 +231,16 @@ test is_correct_split_scaling() {
   let test_random_vkh =
     #"fff60f3b5ea7153e0acc7a803e4401d44b8ed1bae1c7baaad1a62a81"
 
-  let test_royalty_payouts =
+  let payouts =
     [
-      Payout {
-        vkh: marketplace_vkh,
-        amount_lovelace: marketplace_pct,
-      },
-      Payout { vkh: test_royalty_vkh, amount_lovelace: 50 },
+      Payout { vkh: test_royalty_vkh, amount_lovelace: 5000000 },
+      Payout { vkh: test_seller_vkh, amount_lovelace: 93000000},
     ]
+
+  let marketplace_payout = Payout {
+        vkh: marketplace_vkh,
+        amount_lovelace: calculate_marketplace_payout(payouts, test_seller_vkh),
+      }
 
   let tag_datum =
     TagDatum {
@@ -247,8 +249,7 @@ test is_correct_split_scaling() {
         output_index: 0,
       },
     }
-  let serialised_td =
-    builtin.serialise_data(tag_datum)
+  let serialised_td: Data = tag_datum
 
   // 5% royalties 
   let marketplace_addr =
@@ -311,7 +312,7 @@ test is_correct_split_scaling() {
     list.concat([out_1, out_2, out_3], list.repeat(out_random, 100))
 
   is_correct_split(
-    test_royalty_payouts,
+    list.push(payouts, marketplace_payout),
     outputs,
     tag_datum,
     0,

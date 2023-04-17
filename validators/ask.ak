@@ -15,7 +15,6 @@ type Redeemer {
   CancelOrUpdate
 }
 
-// TODO: Fix double satisfaction
 validator {
   fn spend(datum: Datum, redeemer: Redeemer, ctx: ScriptContext) -> Bool {
     let tx =
