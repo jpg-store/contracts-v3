@@ -1,6 +1,5 @@
 use aiken/list
 use aiken/transaction.{ScriptContext}
-
 use marketplace/constants.{marketplace_vkh}
 use marketplace/types.{Payout, TagDatum, VerificationKeyHash}
 use marketplace/utils.{
