@@ -1,9 +1,8 @@
 use aiken/list
 use aiken/transaction.{ScriptContext}
-use marketplace/constants.{marketplace_vkh}
 use marketplace/types.{Payout, TagDatum, VerificationKeyHash}
 use marketplace/utils.{
-  calculate_marketplace_payout, get_own_input, is_correct_split, is_signed_by,
+  get_own_out_ref, is_correct_split, is_signed_by, is_tagged_output,
 }
 
 type Datum {
@@ -21,26 +20,14 @@ validator {
   fn spend(datum: Datum, redeemer: Redeemer, ctx: ScriptContext) -> Bool {
     let tx =
       ctx.transaction
-    let own_input =
-      get_own_input(ctx)
+    let out_ref =
+      get_own_out_ref(ctx)
     let tag_datum =
-      TagDatum { output_reference: own_input.output_reference }
+      TagDatum { output_reference: out_ref }
 
     when redeemer is {
       Buy -> {
-        let marketplace_payout =
-          Payout {
-            vkh: marketplace_vkh,
-            amount_lovelace: calculate_marketplace_payout(
-              datum.payouts,
-              datum.owner,
-            ),
-          }
-
-        let all_payouts =
-          list.push(datum.payouts, marketplace_payout)
-
-        let correct_private_buyer =
+        let is_correct_private_buyer =
           when datum.private_buyer is {
             Some(private_buyer) ->
               is_signed_by(tx, private_buyer)
@@ -48,7 +35,13 @@ validator {
               True
           }
 
-        is_correct_split(all_payouts, tx.outputs, tag_datum, 0) && correct_private_buyer
+        let my_outputs =
+          list.filter(
+            tx.outputs,
+            fn(output) { is_tagged_output(output, tag_datum) },
+          )
+
+        is_correct_split(datum.payouts, my_outputs, tag_datum) && is_correct_private_buyer
       }
 
       CancelOrUpdate ->
