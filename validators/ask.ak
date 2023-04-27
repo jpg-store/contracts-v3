@@ -1,9 +1,8 @@
 use aiken/list
 use aiken/transaction.{ScriptContext}
-use marketplace/types.{Payout, TagDatum, VerificationKeyHash}
-use marketplace/utils.{
-  get_own_out_ref, is_correct_split, is_signed_by, is_tagged_output,
-}
+use jpg/types.{Payout, TagDatum, VerificationKeyHash}
+use jpg/utils.{get_own_out_ref,
+  is_correct_split, is_signed_by, is_tagged_output}
 
 type Datum {
   private_buyer: Option<VerificationKeyHash>,

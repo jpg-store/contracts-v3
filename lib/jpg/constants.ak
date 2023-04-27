@@ -1,4 +1,4 @@
-use marketplace/types.{VerificationKeyHash}
+use jpg/types.{VerificationKeyHash}
 
 pub const marketplace_vkh: VerificationKeyHash =
   #"70e60f3b5ea7153e0acc7a803e4401d44b8ed1bae1c7baaad1a62a72"
