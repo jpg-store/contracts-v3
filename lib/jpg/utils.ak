@@ -8,8 +8,8 @@ use aiken/transaction.{
 }
 use aiken/transaction/credential.{Address, VerificationKeyCredential}
 use aiken/transaction/value
-use marketplace/constants.{marketplace_vkh}
-use marketplace/types.{Payout, TagDatum, VerificationKeyHash}
+use jpg/constants.{marketplace_vkh}
+use jpg/types.{Payout, TagDatum, VerificationKeyHash}
 
 pub fn is_correct_split(
   payouts: List<Payout>,
@@ -194,7 +194,6 @@ test is_correct_split_1() {
   True
 }
 
-
 test is_correct_split_scaling() {
   let test_royalty_vkh =
     #"80f60f3b5ea7153e0acc7a803e4401d44b8ed1bae1c7baaad1a62a81"
@@ -276,7 +275,6 @@ test is_correct_split_scaling() {
       reference_script: None,
     }
 
-
   let outputs =
     list.concat([out_1, out_2, out_3], list.repeat(out_random, 100))
 
@@ -288,15 +286,21 @@ test is_correct_split_scaling() {
 
 // Debugging utilities
 
-fn bytearray_to_hex_string(bytes: ByteArray) -> String {
+/// Encode a ByteArray as a hex String
+pub fn hex_encode(bytes: ByteArray) -> String {
   bytearray.reduce(
     bytes,
-    fn(acc, byte) { string.join([acc, hex(byte / 16), hex(byte % 16)], @"") },
+    fn(acc, byte) {
+      string.join(
+        [acc, byte_hex_encode(byte / 16), byte_hex_encode(byte % 16)],
+        @"",
+      )
+    },
     @"",
   )
 }
 
-fn hex(int: Int) -> String {
+fn byte_hex_encode(int: Int) -> String {
   if int < 10 {
     string.from_int(int)
   } else {
@@ -317,7 +321,11 @@ fn hex(int: Int) -> String {
   }
 }
 
-fn bool_to_string(bool: Bool) -> String {
+test hex_encode_1() {
+  hex_encode("Hello world!") == @"48656c6c6f20776f726c6421"
+}
+
+pub fn bool_to_string(bool: Bool) -> String {
   when bool is {
     True ->
       @"True"
