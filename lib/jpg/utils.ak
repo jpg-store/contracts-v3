@@ -1,13 +1,13 @@
 use aiken/builtin
 use aiken/bytearray
+use aiken/dict
 use aiken/list
 use aiken/string
 use aiken/transaction.{
-  InlineDatum, NoDatum, Output, OutputReference, ScriptContext, Spend,
-  Transaction, TransactionId,
+  Datum, InlineDatum, NoDatum, Output, OutputReference, TransactionId,
 }
 use aiken/transaction/credential.{Address, VerificationKeyCredential}
-use aiken/transaction/value
+use aiken/transaction/value.{to_list}
 use jpg/constants.{marketplace_vkh}
 use jpg/types.{Payout, TagDatum, VerificationKeyHash}
 
@@ -53,15 +53,70 @@ pub fn is_correct_split(
   }
 }
 
-pub fn is_signed_by(transaction: Transaction, vkh: VerificationKeyHash) {
-  list.has(transaction.extra_signatories, vkh)
+pub fn is_signed_by(
+  extra_signatories: List<VerificationKeyHash>,
+  vkh: VerificationKeyHash,
+) {
+  list.has(extra_signatories, vkh)
 }
 
-pub fn get_own_out_ref(ctx: ScriptContext) -> OutputReference {
-  expect Spend(out_ref) =
-    ctx.purpose
+pub fn reduce_over_tagged_outputs(
+  first_output: Output,
+  rest_outputs: List<Output>,
+  payouts: List<Payout>,
+  tag_hash: Datum,
+) -> Bool {
+  let Output { datum, .. } =
+    first_output
+  if datum == tag_hash {
+    expect [payout, ..rest_payouts] =
+      payouts
 
-  out_ref
+    let Payout { vkh, amount_lovelace } =
+      payout
+
+    let Output { address: Address { payment_credential, .. }, value, .. } =
+      first_output
+
+    expect VerificationKeyCredential(output_vkh) =
+      payment_credential
+    // I'd recommend keeping stake key info too
+    let address_check =
+      output_vkh == vkh
+
+    expect [(policy, tokens)] =
+      to_list(value)
+
+    expect [(_, quantity)] =
+      dict.to_list(tokens)
+
+    let policy_check =
+      policy == ""
+
+    let quantity_check =
+      quantity >= amount_lovelace
+
+    let rest_outputs_check =
+      if builtin.null_list(rest_payouts) {
+        True
+      } else {
+        expect [next_output, ..rest_outputs] =
+          rest_outputs
+
+        reduce_over_tagged_outputs(
+          next_output,
+          rest_outputs,
+          rest_payouts,
+          tag_hash,
+        )
+      }
+
+    address_check && policy_check && quantity_check && rest_outputs_check
+  } else {
+    expect [output, ..rest_outputs] =
+      rest_outputs
+    reduce_over_tagged_outputs(output, rest_outputs, payouts, tag_hash)
+  }
 }
 
 pub fn is_tagged_output(output: Output, tag_datum: TagDatum) -> Bool {
