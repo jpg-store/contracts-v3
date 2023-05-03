@@ -61,11 +61,13 @@ pub fn is_signed_by(
 }
 
 pub fn reduce_over_tagged_outputs(
-  first_output: Output,
-  rest_outputs: List<Output>,
+  outputs: List<Output>,
   payouts: List<Payout>,
   tag_hash: Datum,
 ) -> Bool {
+  expect [first_output, ..rest_outputs] =
+    outputs
+
   let Output { datum, .. } =
     first_output
 
@@ -98,25 +100,16 @@ pub fn reduce_over_tagged_outputs(
       quantity >= amount_lovelace
 
     let rest_outputs_check =
-      if builtin.null_list(rest_payouts) {
-        True
-      } else {
-        expect [next_output, ..rest_outputs] =
-          rest_outputs
-
-        reduce_over_tagged_outputs(
-          next_output,
-          rest_outputs,
-          rest_payouts,
-          tag_hash,
-        )
+      when rest_payouts is {
+        [] ->
+          True
+        _ ->
+          reduce_over_tagged_outputs(rest_outputs, rest_payouts, tag_hash)
       }
 
     address_check && policy_check && quantity_check && rest_outputs_check
   } else {
-    expect [output, ..rest_outputs] =
-      rest_outputs
-    reduce_over_tagged_outputs(output, rest_outputs, payouts, tag_hash)
+    reduce_over_tagged_outputs(rest_outputs, payouts, tag_hash)
   }
 }
 

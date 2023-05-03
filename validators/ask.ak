@@ -1,6 +1,7 @@
 use aiken/builtin.{blake2b_256, serialise_data}
 use aiken/cbor.{serialise}
-use aiken/transaction.{DatumHash, ScriptContext, Spend, Transaction}
+use aiken/transaction.{DatumHash,
+  InlineDatum, ScriptContext, Spend, Transaction}
 use jpg/types.{Payout, VerificationKeyHash}
 use jpg/utils.{hex_encode, is_signed_by, reduce_over_tagged_outputs}
 
@@ -28,8 +29,8 @@ validator {
         expect Spend(out_ref) =
           purpose
 
-        let tag_hash =
-          out_ref |> serialise_data |> blake2b_256 |> DatumHash
+        let tag_datum =
+          out_ref |> InlineDatum
 
         let Datum { private_buyer, payouts, .. } =
           datum
@@ -42,15 +43,7 @@ validator {
               True
           }
 
-        expect [first_output, ..rest_outputs] =
-          outputs
-
-        reduce_over_tagged_outputs(
-          first_output,
-          rest_outputs,
-          payouts,
-          tag_hash,
-        ) && is_correct_private_buyer
+        reduce_over_tagged_outputs(outputs, payouts, tag_datum) && is_correct_private_buyer
       }
 
       CancelOrUpdate ->

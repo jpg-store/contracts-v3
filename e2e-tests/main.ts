@@ -36,7 +36,7 @@ const myAsset = {
     1n,
 };
 
-const BULK_PURCHASE_SIZE = 30;
+const BULK_PURCHASE_SIZE = 31;
 const MAX_TX_EX_STEPS = 10000000000;
 const MAX_TX_EX_MEM = 14000000;
 const MAX_TX_SIZE = 16384;
@@ -153,21 +153,21 @@ const tx3 = await lucid
   .collectFrom(contractUtxos, Data.to(new Constr(0, [])))
   .payToAddressWithData(
     marketplaceAddress,
-    { asHash: datumTag },
+    { inline: datumTag },
     {
       lovelace: 1000000n,
     },
   )
   .payToAddressWithData(
     sellerAddr,
-    { asHash: datumTag },
+    { inline: datumTag },
     {
       lovelace: 3000000n,
     },
   )
   .payToAddressWithData(
     royaltyAddress,
-    { asHash: datumTag },
+    { inline: datumTag },
     {
       lovelace: 1000000n,
     },
@@ -242,21 +242,21 @@ for (let i = 1; i < BULK_PURCHASE_SIZE + 1; i++) {
   bulkPurchaseTx = bulkPurchaseTx
     .payToAddressWithData(
       marketplaceAddress,
-      { asHash: datumTag },
+      { inline: datumTag },
       {
         lovelace: 2000000n,
       },
     )
     .payToAddressWithData(
       sellerAddr,
-      { asHash: datumTag },
+      { inline: datumTag },
       {
         lovelace: 96000000n,
       },
     )
     .payToAddressWithData(
       royaltyAddress,
-      { asHash: datumTag },
+      { inline: datumTag },
       {
         lovelace: 2000000n,
       },
