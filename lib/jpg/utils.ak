@@ -4,7 +4,7 @@ use aiken/dict
 use aiken/list
 use aiken/string
 use aiken/transaction.{
-  Datum, InlineDatum, NoDatum, Output, OutputReference, TransactionId,
+  Datum, DatumHash, InlineDatum, NoDatum, Output, OutputReference, TransactionId,
 }
 use aiken/transaction/credential.{Address, VerificationKeyCredential}
 use aiken/transaction/value.{to_list}
@@ -68,6 +68,7 @@ pub fn reduce_over_tagged_outputs(
 ) -> Bool {
   let Output { datum, .. } =
     first_output
+
   if datum == tag_hash {
     expect [payout, ..rest_payouts] =
       payouts

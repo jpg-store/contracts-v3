@@ -1,7 +1,8 @@
 use aiken/builtin.{blake2b_256, serialise_data}
+use aiken/cbor.{serialise}
 use aiken/transaction.{DatumHash, ScriptContext, Spend, Transaction}
 use jpg/types.{Payout, VerificationKeyHash}
-use jpg/utils.{is_signed_by, reduce_over_tagged_outputs}
+use jpg/utils.{hex_encode, is_signed_by, reduce_over_tagged_outputs}
 
 type Datum {
   private_buyer: Option<VerificationKeyHash>,
@@ -28,7 +29,7 @@ validator {
           purpose
 
         let tag_hash =
-          DatumHash(out_ref |> serialise_data |> blake2b_256)
+          out_ref |> serialise_data |> blake2b_256 |> DatumHash
 
         let Datum { private_buyer, payouts, .. } =
           datum

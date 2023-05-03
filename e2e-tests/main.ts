@@ -26,9 +26,9 @@ const royaltyPk = generatePrivateKey();
 const l = await Lucid.new(
   new Blockfrost(
     "https://cardano-preview.blockfrost.io/api/v0",
-    Deno.env.get("BLOCKFROST_API_KEY")
+    Deno.env.get("BLOCKFROST_API_KEY"),
   ),
-  "Preview"
+  "Preview",
 );
 
 const myAsset = {
@@ -36,7 +36,7 @@ const myAsset = {
     1n,
 };
 
-const BULK_PURCHASE_SIZE = 10;
+const BULK_PURCHASE_SIZE = 30;
 const MAX_TX_EX_STEPS = 10000000000;
 const MAX_TX_EX_MEM = 14000000;
 const MAX_TX_SIZE = 16384;
@@ -57,7 +57,7 @@ const marketplacePkh =
 
 const marketplaceAddress = C.EnterpriseAddress.new(
   0,
-  C.StakeCredential.from_keyhash(C.Ed25519KeyHash.from_hex(marketplacePkh))
+  C.StakeCredential.from_keyhash(C.Ed25519KeyHash.from_hex(marketplacePkh)),
 )
   .to_address()
   .to_bech32("addr_test");
@@ -71,8 +71,9 @@ const buyerAddress = await l
   .wallet.address();
 
 const { paymentCredential } = getAddressDetails(sellerAddr);
-const { paymentCredential: royaltyPaymentCred } =
-  getAddressDetails(royaltyAddress);
+const { paymentCredential: royaltyPaymentCred } = getAddressDetails(
+  royaltyAddress,
+);
 
 const emulator = new Emulator(
   [
@@ -88,7 +89,7 @@ const emulator = new Emulator(
   {
     ...PROTOCOL_PARAMETERS_DEFAULT,
     // maxTxExSteps: BigInt(MAX_TX_EX_STEPS),
-  }
+  },
 );
 
 const lucid = await Lucid.new(emulator);
@@ -105,14 +106,14 @@ const makePayout = (cred: string, amount: bigint) => {
 
 const datum = Data.to(
   new Constr(0, [
-    // new Constr(1, []),
+    new Constr(1, []),
     [
+      makePayout(marketplacePkh, 1000000n),
       makePayout(paymentCredential?.hash!, price - 2000000n),
       makePayout(royaltyPaymentCred?.hash!, 1000000n),
-      makePayout(marketplacePkh, 1000000n),
     ],
     paymentCredential?.hash!,
-  ])
+  ]),
 );
 
 const tx = await lucid
@@ -128,48 +129,48 @@ emulator.awaitBlock(4);
 
 const contractUtxos = await lucid.utxosAt(contractAddress);
 
-const tx2 = await lucid
-  .newTx()
-  .collectFrom(contractUtxos, Data.to(new Constr(1, [])))
-  .attachSpendingValidator(validator)
-  .addSigner(sellerAddr)
-  .complete();
+// const tx2 = await lucid
+//   .newTx()
+//   .collectFrom(contractUtxos, Data.to(new Constr(1, [])))
+//   .attachSpendingValidator(validator)
+//   .addSigner(sellerAddr)
+//   .complete();
 
-const signed2 = await tx2.sign().complete();
+// const signed2 = await tx2.sign().complete();
 
-printExecutionDetails(signed2, "Withdraw ask (best case scenario)");
+// printExecutionDetails(signed2, "Withdraw ask (best case scenario)");
 
-emulator.awaitBlock(8);
+// emulator.awaitBlock(8);
 
 lucid.selectWalletFromPrivateKey(buyerPk);
 
 const datumTag = Data.to(
-  new Constr(0, [new Constr(0, [new Constr(0, [tx.toHash()]), BigInt(0)])])
+  new Constr(0, [new Constr(0, [tx.toHash()]), BigInt(0)]),
 );
 
 const tx3 = await lucid
   .newTx()
   .collectFrom(contractUtxos, Data.to(new Constr(0, [])))
   .payToAddressWithData(
-    royaltyAddress,
-    { inline: datumTag },
+    marketplaceAddress,
+    { asHash: datumTag },
     {
       lovelace: 1000000n,
-    }
+    },
   )
   .payToAddressWithData(
     sellerAddr,
-    { inline: datumTag },
+    { asHash: datumTag },
     {
       lovelace: 3000000n,
-    }
+    },
   )
   .payToAddressWithData(
-    marketplaceAddress,
-    { inline: datumTag },
+    royaltyAddress,
+    { asHash: datumTag },
     {
       lovelace: 1000000n,
-    }
+    },
   )
   .attachSpendingValidator(validator)
   .addSigner(buyerAddress)
@@ -193,14 +194,14 @@ for (const [unit, qty] of Object.entries(bulkPurchaseAssets)) {
 
   const datum = Data.to(
     new Constr(0, [
-      // new Constr(1, []),
+      new Constr(1, []),
       [
+        makePayout(marketplacePkh, 2000000n),
         makePayout(paymentCredential?.hash!, myPrice - 4000000n),
         makePayout(royaltyPaymentCred?.hash!, 2000000n),
-        makePayout(marketplacePkh, 2000000n),
       ],
       paymentCredential?.hash!,
-    ])
+    ]),
   );
 
   bulkLockTx = bulkLockTx.payToContract(
@@ -208,7 +209,7 @@ for (const [unit, qty] of Object.entries(bulkPurchaseAssets)) {
     { asHash: datum },
     {
       [unit]: qty,
-    }
+    },
   );
 }
 
@@ -227,7 +228,7 @@ let bulkPurchaseTx = lucid
   .newTx()
   .collectFrom(
     contractUtxos2.filter((u) => u.txHash === bulkLockSigned.toHash()),
-    Data.to(new Constr(0, []))
+    Data.to(new Constr(0, [])),
   )
   .attachSpendingValidator(validator)
   .addSigner(buyerAddress);
@@ -235,32 +236,30 @@ let bulkPurchaseTx = lucid
 for (let i = 1; i < BULK_PURCHASE_SIZE + 1; i++) {
   const oIndex = contractUtxos2[i].outputIndex;
   const datumTag = Data.to(
-    new Constr(0, [
-      new Constr(0, [new Constr(0, [bulkLockSigned.toHash()]), BigInt(oIndex)]),
-    ])
+    new Constr(0, [new Constr(0, [bulkLockSigned.toHash()]), BigInt(oIndex)]),
   );
 
   bulkPurchaseTx = bulkPurchaseTx
     .payToAddressWithData(
-      royaltyAddress,
-      { inline: datumTag },
+      marketplaceAddress,
+      { asHash: datumTag },
       {
         lovelace: 2000000n,
-      }
+      },
     )
     .payToAddressWithData(
       sellerAddr,
-      { inline: datumTag },
+      { asHash: datumTag },
       {
         lovelace: 96000000n,
-      }
+      },
     )
     .payToAddressWithData(
-      marketplaceAddress,
-      { inline: datumTag },
+      royaltyAddress,
+      { asHash: datumTag },
       {
         lovelace: 2000000n,
-      }
+      },
     );
 }
 
