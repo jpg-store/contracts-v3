@@ -20,6 +20,7 @@ import * as cbor from "https://deno.land/x/cbor@v1.4.1/index.js";
 const validator = await readValidator();
 
 const sellerPk = generatePrivateKey();
+const refPk = generatePrivateKey();
 const buyerPk = generatePrivateKey();
 const royaltyPk = generatePrivateKey();
 
@@ -36,7 +37,7 @@ const myAsset = {
     1n,
 };
 
-const BULK_PURCHASE_SIZE = 38;
+const BULK_PURCHASE_SIZE = 40;
 const MAX_TX_EX_STEPS = 10000000000;
 const MAX_TX_EX_MEM = 14000000;
 const MAX_TX_SIZE = 16384;
@@ -50,6 +51,10 @@ const bulkPurchaseAssets: Assets = new Array(BULK_PURCHASE_SIZE)
 
 const sellerAddr = await l
   .selectWalletFromPrivateKey(sellerPk)
+  .wallet.address();
+
+const refAddr = await l
+  .selectWalletFromPrivateKey(refPk)
   .wallet.address();
 
 const marketplacePkh =
@@ -79,11 +84,15 @@ const emulator = new Emulator(
   [
     {
       address: sellerAddr,
-      assets: { lovelace: BigInt(1e12), ...myAsset, ...bulkPurchaseAssets },
+      assets: { lovelace: BigInt(1e14), ...myAsset, ...bulkPurchaseAssets },
     },
     {
       address: buyerAddress,
-      assets: { lovelace: BigInt(1e12) },
+      assets: { lovelace: BigInt(1e14) },
+    },
+    {
+      address: refAddr,
+      assets: { lovelace: BigInt(1e14) },
     },
   ],
   {
@@ -127,7 +136,22 @@ await signed.submit();
 
 emulator.awaitBlock(4);
 
+const txRef = await lucid
+  .newTx()
+  .payToAddressWithData(refAddr, { scriptRef: validator }, {
+    lovelace: 100000000n,
+  })
+  .complete();
+
+const signedRef = await txRef.sign().complete();
+
+await signedRef.submit();
+
+emulator.awaitBlock(16);
+
 const contractUtxos = await lucid.utxosAt(contractAddress);
+
+const refUtxos = await lucid.utxosAt(refAddr);
 
 // const tx2 = await lucid
 //   .newTx()
@@ -151,6 +175,7 @@ const datumTag = Data.to(
 const tx3 = await lucid
   .newTx()
   .collectFrom(contractUtxos, Data.to(new Constr(0, [BigInt(0)])))
+  .readFrom(refUtxos)
   .payToAddressWithData(
     marketplaceAddress,
     { asHash: datumTag },
@@ -172,7 +197,6 @@ const tx3 = await lucid
       lovelace: 1000000n,
     },
   )
-  .attachSpendingValidator(validator)
   .addSigner(buyerAddress)
   .complete();
 
@@ -233,10 +257,10 @@ let bulkPurchaseTx = contractUtxos2.filter((u) =>
       [utxo],
       Data.to(new Constr(0, [BigInt(index * 3)])),
     )
-    .attachSpendingValidator(validator)
+    .readFrom(refUtxos)
     .addSigner(buyerAddress);
-}).reduce((thing, other) => {
-  return thing.compose(other);
+}).reduce((acc, mappedTx) => {
+  return acc.compose(mappedTx);
 }, lucid.newTx());
 
 for (let i = 1; i < BULK_PURCHASE_SIZE + 1; i++) {
