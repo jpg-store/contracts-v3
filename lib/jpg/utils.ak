@@ -1,13 +1,13 @@
-use aiken/builtin
+use aiken/builtin.{tail_list}
 use aiken/bytearray
 use aiken/dict
 use aiken/list
 use aiken/string
 use aiken/transaction.{
-  Datum, DatumHash, InlineDatum, NoDatum, Output, OutputReference, TransactionId,
+  Datum, InlineDatum, NoDatum, Output, OutputReference, TransactionId,
 }
 use aiken/transaction/credential.{Address, VerificationKeyCredential}
-use aiken/transaction/value.{to_list}
+use aiken/transaction/value.{to_list_advanced_usage}
 use jpg/constants.{marketplace_vkh}
 use jpg/types.{Payout, TagDatum, VerificationKeyHash}
 
@@ -60,6 +60,41 @@ pub fn is_signed_by(
   list.has(extra_signatories, vkh)
 }
 
+pub fn find_leading_output(
+  leading_output_index: Int,
+  outputs: List<Output>,
+) -> List<Output> {
+  if leading_output_index >= 10 {
+    find_leading_output(
+      leading_output_index - 10,
+      tail_list(
+        tail_list(
+          tail_list(
+            tail_list(
+              tail_list(
+                tail_list(tail_list(tail_list(tail_list(tail_list(outputs))))),
+              ),
+            ),
+          ),
+        ),
+      ),
+    )
+  } else {
+    do_find_leading_output(leading_output_index, outputs)
+  }
+}
+
+pub fn do_find_leading_output(
+  current_index: Int,
+  outputs: List<Output>,
+) -> List<Output> {
+  if current_index == 0 {
+    outputs
+  } else {
+    do_find_leading_output(current_index - 1, tail_list(outputs))
+  }
+}
+
 pub fn reduce_over_tagged_outputs(
   outputs: List<Output>,
   payouts: List<Payout>,
@@ -88,7 +123,7 @@ pub fn reduce_over_tagged_outputs(
       output_vkh == vkh
 
     expect [(policy, tokens)] =
-      to_list(value)
+      to_list_advanced_usage(value)
 
     expect [(_, quantity)] =
       dict.to_list(tokens)

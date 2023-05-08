@@ -36,7 +36,7 @@ const myAsset = {
     1n,
 };
 
-const BULK_PURCHASE_SIZE = 31;
+const BULK_PURCHASE_SIZE = 38;
 const MAX_TX_EX_STEPS = 10000000000;
 const MAX_TX_EX_MEM = 14000000;
 const MAX_TX_SIZE = 16384;
@@ -150,24 +150,24 @@ const datumTag = Data.to(
 
 const tx3 = await lucid
   .newTx()
-  .collectFrom(contractUtxos, Data.to(new Constr(0, [])))
+  .collectFrom(contractUtxos, Data.to(new Constr(0, [BigInt(0)])))
   .payToAddressWithData(
     marketplaceAddress,
-    { inline: datumTag },
+    { asHash: datumTag },
     {
       lovelace: 1000000n,
     },
   )
   .payToAddressWithData(
     sellerAddr,
-    { inline: datumTag },
+    { asHash: datumTag },
     {
       lovelace: 3000000n,
     },
   )
   .payToAddressWithData(
     royaltyAddress,
-    { inline: datumTag },
+    { asHash: datumTag },
     {
       lovelace: 1000000n,
     },
@@ -224,14 +224,20 @@ const contractUtxos2 = await lucid.utxosAt(contractAddress);
 
 lucid.selectWalletFromPrivateKey(buyerPk);
 
-let bulkPurchaseTx = lucid
-  .newTx()
-  .collectFrom(
-    contractUtxos2.filter((u) => u.txHash === bulkLockSigned.toHash()),
-    Data.to(new Constr(0, [])),
-  )
-  .attachSpendingValidator(validator)
-  .addSigner(buyerAddress);
+let bulkPurchaseTx = contractUtxos2.filter((u) =>
+  u.txHash === bulkLockSigned.toHash()
+).map((utxo, index) => {
+  return lucid
+    .newTx()
+    .collectFrom(
+      [utxo],
+      Data.to(new Constr(0, [BigInt(index * 3)])),
+    )
+    .attachSpendingValidator(validator)
+    .addSigner(buyerAddress);
+}).reduce((thing, other) => {
+  return thing.compose(other);
+}, lucid.newTx());
 
 for (let i = 1; i < BULK_PURCHASE_SIZE + 1; i++) {
   const oIndex = contractUtxos2[i].outputIndex;
@@ -242,21 +248,21 @@ for (let i = 1; i < BULK_PURCHASE_SIZE + 1; i++) {
   bulkPurchaseTx = bulkPurchaseTx
     .payToAddressWithData(
       marketplaceAddress,
-      { inline: datumTag },
+      { asHash: datumTag },
       {
         lovelace: 2000000n,
       },
     )
     .payToAddressWithData(
       sellerAddr,
-      { inline: datumTag },
+      { asHash: datumTag },
       {
         lovelace: 96000000n,
       },
     )
     .payToAddressWithData(
       royaltyAddress,
-      { inline: datumTag },
+      { asHash: datumTag },
       {
         lovelace: 2000000n,
       },
