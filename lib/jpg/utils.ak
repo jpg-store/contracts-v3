@@ -60,25 +60,26 @@ pub fn is_signed_by(
   list.has(extra_signatories, vkh)
 }
 
+pub fn skip_10_items(some_list: List<a>) -> List<a> {
+  tail_list(
+    tail_list(
+      tail_list(
+        tail_list(
+          tail_list(
+            tail_list(tail_list(tail_list(tail_list(tail_list(some_list))))),
+          ),
+        ),
+      ),
+    ),
+  )
+}
+
 pub fn find_leading_output(
   leading_output_index: Int,
   outputs: List<Output>,
 ) -> List<Output> {
   if leading_output_index >= 10 {
-    find_leading_output(
-      leading_output_index - 10,
-      tail_list(
-        tail_list(
-          tail_list(
-            tail_list(
-              tail_list(
-                tail_list(tail_list(tail_list(tail_list(tail_list(outputs))))),
-              ),
-            ),
-          ),
-        ),
-      ),
-    )
+    find_leading_output(leading_output_index - 10, skip_10_items(outputs))
   } else {
     do_find_leading_output(leading_output_index, outputs)
   }
