@@ -2,7 +2,7 @@ use aiken/builtin.{blake2b_256, serialise_data}
 use aiken/list
 use aiken/transaction.{DatumHash, ScriptContext, Spend, Transaction}
 use jpg/types.{Payout, VerificationKeyHash}
-use jpg/utils.{check_payouts, find_payout_outputs}
+use jpg/utils.{check_marketplace_payout, check_payouts, find_payout_outputs}
 
 /// A listing requires a datum that has
 /// the owner's payment key and a list of payouts.
@@ -12,6 +12,7 @@ use jpg/utils.{check_payouts, find_payout_outputs}
 type Datum {
   reserved_for: Option<VerificationKeyHash>,
   payouts: List<Payout>,
+  marketplace_fee: Int,
   owner: VerificationKeyHash,
 }
 
@@ -48,13 +49,25 @@ validator {
             |> blake2b_256
             |> DatumHash
 
-        let Datum { reserved_for, payouts, .. } =
+        let Datum { reserved_for, payouts, marketplace_fee, .. } =
           datum
 
+        let outputs_offset =
+          find_payout_outputs(outputs, payout_outputs_offset)
+
         let has_correct_payouts =
-          outputs
-            |> find_payout_outputs(payout_outputs_offset)
-            |> check_payouts(payouts, datum_tag)
+          if marketplace_fee == 0 {
+            check_payouts(outputs_offset, payouts, datum_tag)
+          } else {
+            expect [marketplace_output, ..rest_ouputs] =
+              outputs_offset
+
+            check_marketplace_payout(
+              marketplace_output,
+              marketplace_fee,
+              datum_tag,
+            ) && check_payouts(rest_ouputs, payouts, datum_tag)
+          }
 
         when reserved_for is {
           Some(buyer) ->

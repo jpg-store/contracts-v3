@@ -2,7 +2,7 @@ use aiken/builtin.{tail_list}
 use aiken/dict
 use aiken/transaction.{Datum, Output}
 use aiken/transaction/value.{to_list_advanced_usage}
-use jpg/constants.{marketplace_vkh}
+use jpg/constants.{marketplace_addr}
 use jpg/types.{Payout}
 
 pub fn find_payout_outputs(
@@ -47,6 +47,35 @@ fn skip_10_items(some_list: List<a>) -> List<a> {
 
 test skip_10_items_1() {
   skip_10_items([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]) == [11]
+}
+
+pub fn check_marketplace_payout(
+  output: Output,
+  marketplace_fee: Int,
+  datum_tag: Datum,
+) -> Bool {
+  let Output { address: output_address, value, datum, .. } =
+    output
+
+  let datum_check =
+    datum == datum_tag
+
+  let address_check =
+    output_address == marketplace_addr()
+
+  expect [(policy, tokens)] =
+    to_list_advanced_usage(value)
+
+  expect [(_, quantity)] =
+    dict.to_list(tokens)
+
+  let policy_check =
+    policy == ""
+
+  let quantity_check =
+    quantity >= marketplace_fee
+
+  datum_check && address_check && quantity_check && policy_check
 }
 
 pub fn check_payouts(
