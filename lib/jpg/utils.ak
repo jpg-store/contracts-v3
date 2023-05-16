@@ -5,6 +5,11 @@ use aiken/transaction/value.{to_list_advanced_usage}
 use jpg/constants.{marketplace_addr}
 use jpg/types.{Payout}
 
+/// Find the outputs that match the list of payouts.
+/// We use a heuristic function combined with the given 
+/// redeemer offset to jump 10 at a time towards first output to validate.
+/// This saves a massive amount in budget allowing us to support 40+ inputs.
+/// If the wrong offset is given then the script will fail or cost more.
 pub fn find_payout_outputs(
   outputs: List<Output>,
   leading_output_index: Int,
@@ -31,6 +36,8 @@ fn do_find_payout_outputs(
   }
 }
 
+/// Small utility to skip 10 items in a list.
+/// Used by `find_payout_outputs`.
 fn skip_10_items(some_list: List<a>) -> List<a> {
   some_list
     |> tail_list
@@ -49,6 +56,13 @@ test skip_10_items_1() {
   skip_10_items([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]) == [11]
 }
 
+/// This function is used only if `marketplace_fee`
+/// is greater than `0`. The main different from
+/// `check_payouts` is that we make sure the
+/// output address matches a hardcoded marketplace address
+/// along with confirming that the output value equals
+/// the marketplace_fee. In this case there is no `Payout`
+/// to compare to.
 pub fn check_marketplace_payout(
   output: Output,
   marketplace_fee: Int,
@@ -60,6 +74,7 @@ pub fn check_marketplace_payout(
   let datum_check =
     datum == datum_tag
 
+  // Match hardcoded marketplace address
   let address_check =
     output_address == marketplace_addr()
 
@@ -72,12 +87,21 @@ pub fn check_marketplace_payout(
   let policy_check =
     policy == ""
 
+  // Output value quantity must equal the marketplace fee
+  // this prevents people from not paying a fee by submitting
+  // transactions not constructed by Jpg.
   let quantity_check =
     quantity >= marketplace_fee
 
   datum_check && address_check && quantity_check && policy_check
 }
 
+/// Check that payouts and payout outputs
+/// are correct. Payouts are stored in the datum
+/// when assets are listed. On buy a transaction
+/// with matching payout outputs needs to be constructed.
+/// We also require that outputs are in the same order as the
+/// payouts in the datum.
 pub fn check_payouts(
   outputs: List<Output>,
   payouts: List<Payout>,
@@ -96,7 +120,9 @@ pub fn check_payouts(
     let Payout { address: payout_address, amount_lovelace } =
       payout
 
-    // I'd recommend keeping stake key info too
+    // The `Output` address must match
+    // the address specified in the corresponding
+    // payout from the datum.
     let address_check =
       payout_address == output_address
 
@@ -109,20 +135,26 @@ pub fn check_payouts(
     let policy_check =
       policy == ""
 
+    // The quantity in the output must equal
+    // the amount specified in the corresponding
+    // payout from the datum.
     let quantity_check =
       quantity >= amount_lovelace
 
     let rest_outputs_check =
       when rest_payouts is {
+        // the base case
         [] ->
+          // if rest is empty we are done
           True
         _ ->
+          // continue with remaining outputs and payouts
           check_payouts(rest_outputs, rest_payouts, datum_tag)
       }
 
     address_check && policy_check && quantity_check && rest_outputs_check
   } else {
-    check_payouts(rest_outputs, payouts, datum_tag)
+    False
   }
 }
 // test is_correct_split_1() {
