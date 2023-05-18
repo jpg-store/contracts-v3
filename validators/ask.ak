@@ -50,7 +50,7 @@ validator {
         expect Spend(out_ref) =
           purpose
 
-        // 
+        // for double satisfaction
         let datum_tag =
           out_ref
             |> serialise_data

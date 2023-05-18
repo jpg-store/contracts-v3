@@ -1,6 +1,8 @@
 use aiken/builtin.{tail_list}
 use aiken/dict
-use aiken/transaction.{Datum, Output}
+use aiken/list
+use aiken/transaction.{Datum, DatumHash, Output, OutputReference, TransactionId}
+use aiken/transaction/credential.{Address, VerificationKeyCredential}
 use aiken/transaction/value.{to_list_advanced_usage}
 use jpg/constants.{marketplace_addr}
 use jpg/types.{Payout}
@@ -10,23 +12,26 @@ use jpg/types.{Payout}
 /// redeemer offset to jump 10 at a time towards first output to validate.
 /// This saves a massive amount in budget allowing us to support 40+ inputs.
 /// If the wrong offset is given then the script will fail or cost more.
+/// The resulting `Output` list may contain more outputs than payouts. But
+/// we expect the transaction to NOT have alternating payout outputs and random
+/// outputs. This means you cannot construct transactions that have outputs
+/// like this: `[payout, random, payout]`. An example of a valid set of outputs
+/// would be: `[random, payout, payout, random]`.
+/// This is pretty much `list.drop` but optimized for our situation.
 pub fn find_payout_outputs(
-  outputs: List<Output>,
-  leading_output_index: Int,
-) -> List<Output> {
-  if leading_output_index >= 10 {
+  outputs: List<a>,
+  payout_outputs_offset: Int,
+) -> List<a> {
+  if payout_outputs_offset >= 10 {
     outputs
       |> skip_10_items
-      |> find_payout_outputs(leading_output_index - 10)
+      |> find_payout_outputs(payout_outputs_offset - 10)
   } else {
-    do_find_payout_outputs(outputs, leading_output_index)
+    do_find_payout_outputs(outputs, payout_outputs_offset)
   }
 }
 
-fn do_find_payout_outputs(
-  outputs: List<Output>,
-  current_index: Int,
-) -> List<Output> {
+fn do_find_payout_outputs(outputs: List<a>, current_index: Int) -> List<a> {
   if current_index == 0 {
     outputs
   } else {
@@ -34,6 +39,14 @@ fn do_find_payout_outputs(
       |> tail_list
       |> do_find_payout_outputs(current_index - 1)
   }
+}
+
+test find_payout_outputs_1() {
+  find_payout_outputs([1, 2, 3, 4], 2) == [3, 4]
+}
+
+test find_payout_outputs_2() {
+  find_payout_outputs([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], 10) == [11]
 }
 
 /// Small utility to skip 10 items in a list.
@@ -94,6 +107,27 @@ pub fn check_marketplace_payout(
     quantity >= marketplace_fee
 
   datum_check && address_check && quantity_check && policy_check
+}
+
+test check_marketplace_payout_1() {
+  let datum_tag =
+    OutputReference {
+      transaction_id: TransactionId { hash: #"00" },
+      output_index: 0,
+    }
+      |> builtin.serialise_data
+      |> builtin.blake2b_256
+      |> DatumHash
+
+  let output =
+    Output {
+      address: marketplace_addr(),
+      value: value.from_lovelace(2000000),
+      datum: datum_tag,
+      reference_script: None,
+    }
+
+  check_marketplace_payout(output, 2000000, datum_tag)
 }
 
 /// Check that payouts and payout outputs
@@ -157,164 +191,74 @@ pub fn check_payouts(
     False
   }
 }
-// test is_correct_split_1() {
-//   let test_royalty_vkh =
-//     #"80f60f3b5ea7153e0acc7a803e4401d44b8ed1bae1c7baaad1a62a81"
-//   let test_seller_vkh =
-//     #"90f60f3b5ea7153e0acc7a803e4401d44b8ed1bae1c7baaad1a62a81"
 
-//   let test_royalty_payouts =
-//     [
-//       Payout { vkh: test_royalty_vkh, amount_lovelace: 3000000 },
-//       Payout { vkh: test_seller_vkh, amount_lovelace: 95000000 },
-//       Payout { vkh: marketplace_vkh, amount_lovelace: 2000000 },
-//     ]
+test check_payouts_1() {
+  let test_royalty_addr =
+    Address {
+      payment_credential: VerificationKeyCredential(
+        #"80f60f3b5ea7153e0acc7a803e4401d44b8ed1bae1c7baaad1a62a81",
+      ),
+      stake_credential: None,
+    }
 
-//   let tag_datum =
-//     TagDatum {
-//       output_reference: OutputReference {
-//         transaction_id: TransactionId { hash: #"00" },
-//         output_index: 0,
-//       },
-//     }
+  let test_seller_addr =
+    Address {
+      payment_credential: VerificationKeyCredential(
+        #"90f60f3b5ea7153e0acc7a803e4401d44b8ed1bae1c7baaad1a62a81",
+      ),
+      stake_credential: None,
+    }
 
-//   // 5% royalties 
-//   let marketplace_addr =
-//     Address {
-//       payment_credential: VerificationKeyCredential(marketplace_vkh),
-//       stake_credential: None,
-//     }
+  let test_random_addr =
+    Address {
+      payment_credential: VerificationKeyCredential(
+        #"fff60f3b5ea7153e0acc7a803e4401d44b8ed1bae1c7baaad1a62a81",
+      ),
+      stake_credential: None,
+    }
 
-//   let royalty_addr =
-//     Address {
-//       payment_credential: VerificationKeyCredential(test_royalty_vkh),
-//       stake_credential: None,
-//     }
+  let test_royalty_payouts =
+    [
+      Payout { address: test_royalty_addr, amount_lovelace: 3000000 },
+      Payout { address: test_seller_addr, amount_lovelace: 95000000 },
+    ]
 
-//   let seller_addr =
-//     Address {
-//       payment_credential: VerificationKeyCredential(test_seller_vkh),
-//       stake_credential: None,
-//     }
+  let datum_tag =
+    OutputReference {
+      transaction_id: TransactionId { hash: #"00" },
+      output_index: 0,
+    }
+      |> builtin.serialise_data
+      |> builtin.blake2b_256
+      |> DatumHash
 
-//   let out_1 =
-//     Output {
-//       address: royalty_addr,
-//       value: value.from_lovelace(3000000),
-//       datum: InlineDatum(tag_datum),
-//       reference_script: None,
-//     }
+  // 5% royalties
+  let out_1 =
+    Output {
+      address: test_royalty_addr,
+      value: value.from_lovelace(3000000),
+      datum: datum_tag,
+      reference_script: None,
+    }
 
-//   let out_2 =
-//     Output {
-//       address: marketplace_addr,
-//       value: value.from_lovelace(2000000),
-//       datum: InlineDatum(tag_datum),
-//       reference_script: None,
-//     }
+  let out_2 =
+    Output {
+      address: test_seller_addr,
+      value: value.from_lovelace(95000000),
+      datum: datum_tag,
+      reference_script: None,
+    }
 
-//   let out_3 =
-//     Output {
-//       address: seller_addr,
-//       value: value.from_lovelace(95000000),
-//       datum: InlineDatum(tag_datum),
-//       reference_script: None,
-//     }
+  let out_random =
+    Output {
+      address: test_random_addr,
+      value: value.from_lovelace(1000000),
+      datum: datum_tag,
+      reference_script: None,
+    }
 
-//   let outputs =
-//     [out_1, out_2, out_3]
+  let outputs =
+    list.concat([out_1, out_2], list.repeat(out_random, 100))
 
-//   is_correct_split(test_royalty_payouts, outputs, tag_datum) == // calculate_marketplace_payout(test_royalty_payouts),
-//   // False,
-//   True
-// }
-
-// test is_correct_split_scaling() {
-//   let test_royalty_vkh =
-//     #"80f60f3b5ea7153e0acc7a803e4401d44b8ed1bae1c7baaad1a62a81"
-//   let test_seller_vkh =
-//     #"90f60f3b5ea7153e0acc7a803e4401d44b8ed1bae1c7baaad1a62a81"
-//   let test_random_vkh =
-//     #"fff60f3b5ea7153e0acc7a803e4401d44b8ed1bae1c7baaad1a62a81"
-
-//   let payouts =
-//     [
-//       Payout { vkh: test_royalty_vkh, amount_lovelace: 5000000 },
-//       Payout { vkh: test_seller_vkh, amount_lovelace: 93000000 },
-//     ]
-
-//   let marketplace_payout =
-//     Payout { vkh: marketplace_vkh, amount_lovelace: 2000000 }
-
-//   let tag_datum =
-//     TagDatum {
-//       output_reference: OutputReference {
-//         transaction_id: TransactionId { hash: #"00" },
-//         output_index: 0,
-//       },
-//     }
-
-//   let marketplace_addr =
-//     Address {
-//       payment_credential: VerificationKeyCredential(marketplace_vkh),
-//       stake_credential: None,
-//     }
-
-//   let royalty_addr =
-//     Address {
-//       payment_credential: VerificationKeyCredential(test_royalty_vkh),
-//       stake_credential: None,
-//     }
-
-//   let seller_addr =
-//     Address {
-//       payment_credential: VerificationKeyCredential(test_seller_vkh),
-//       stake_credential: None,
-//     }
-
-//   let random_addr =
-//     Address {
-//       payment_credential: VerificationKeyCredential(test_random_vkh),
-//       stake_credential: None,
-//     }
-
-//   let out_1 =
-//     Output {
-//       address: royalty_addr,
-//       value: value.from_lovelace(5000000),
-//       datum: InlineDatum(tag_datum),
-//       reference_script: None,
-//     }
-
-//   let out_2 =
-//     Output {
-//       address: marketplace_addr,
-//       value: value.from_lovelace(2000000),
-//       datum: InlineDatum(tag_datum),
-//       reference_script: None,
-//     }
-
-//   let out_3 =
-//     Output {
-//       address: seller_addr,
-//       value: value.from_lovelace(93000000),
-//       datum: InlineDatum(tag_datum),
-//       reference_script: None,
-//     }
-
-//   let out_random =
-//     Output {
-//       address: random_addr,
-//       value: value.from_lovelace(1000000),
-//       datum: InlineDatum(tag_datum),
-//       reference_script: None,
-//     }
-
-//   let outputs =
-//     list.concat([out_1, out_2, out_3], list.repeat(out_random, 100))
-
-//   let all_payouts =
-//     list.push(payouts, marketplace_payout)
-
-//   is_correct_split(all_payouts, outputs, tag_datum) == True
-// }
+  check_payouts(outputs, test_royalty_payouts, datum_tag)
+}
