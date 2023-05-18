@@ -9,6 +9,7 @@
     "https://deno.land/std@0.184.0/collections/without_all.ts": "a89f5da0b5830defed4f59666e188df411d8fece35a5f6ca69be6ca71a95c185",
     "https://deno.land/std@0.184.0/dotenv/load.ts": "0636983549b98f29ab75c9a22a42d9723f0a389ece5498fe971e7bb2556a12e2",
     "https://deno.land/std@0.184.0/dotenv/mod.ts": "e4c3cdbe11f05340e1217a4ebe2e6f2eef49e11c8d7d2595bb977923a396e18b",
+    "https://deno.land/std@0.184.0/fmt/colors.ts": "d67e3cd9f472535241a8e410d33423980bec45047e343577554d3356e1f0ef4e",
     "https://deno.land/x/cbor@v1.4.1/decode.js": "7d5bf9c6cf1389a60bef978ba0046e13080d230b636d8c7b8259d2beb7aa3985",
     "https://deno.land/x/cbor@v1.4.1/encode.js": "fc5068300e225c779f6a5fbf9bbaf74cb9b432f86e832c4f5db484767421bdae",
     "https://deno.land/x/cbor@v1.4.1/index.js": "4119830fb6d106ec2a369442042803d57cff13cbc76f6aefc2f871aeb6e6bef5",

@@ -26,3 +26,5 @@ jobs:
 
       - run: deno task e2e
         working-directory: ./e2e
+        env:
+          BLOCKFROST_API_KEY: ${{ secrets.BLOCKFROST_API_KEY }}

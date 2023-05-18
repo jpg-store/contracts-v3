@@ -31,7 +31,7 @@ type Redeemer {
   /// the outputs containing the payouts start.
   Buy { payout_outputs_offset: Int }
   /// Cancel or update a listing.
-  CancelOrUpdate
+  WithdrawOrUpdate
 }
 
 validator {
@@ -106,7 +106,7 @@ validator {
       // There's not much to do here. An asset
       // owner can cancel or update their listing
       // at any time.
-      CancelOrUpdate ->
+      WithdrawOrUpdate ->
         // is signed by owner
         list.has(extra_signatories, datum.owner)
     }

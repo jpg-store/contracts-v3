@@ -1,4 +1,5 @@
 import "https://deno.land/std@0.184.0/dotenv/load.ts";
+import * as colors from "https://deno.land/std@0.184.0/fmt/colors.ts";
 import {
   Assets,
   Blockfrost,
@@ -39,7 +40,7 @@ const myAsset = {
     1n,
 };
 
-const BULK_PURCHASE_SIZE = 40;
+const BULK_PURCHASE_SIZE = 43;
 const MAX_TX_EX_STEPS = 10000000000;
 const MAX_TX_EX_MEM = 14000000;
 const MAX_TX_SIZE = 16384;
@@ -112,17 +113,19 @@ lucid.selectWalletFromPrivateKey(sellerPk);
 const price = 5000000n;
 
 const makePayout = (cred: string, amount: bigint) => {
-  return new Constr(0, [cred, amount]);
+  const address = new Constr(0, [new Constr(0, [cred]), new Constr(1, [])]);
+
+  return new Constr(0, [address, amount]);
 };
 
 const datum = Data.to(
   new Constr(0, [
     new Constr(1, []),
     [
-      makePayout(marketplacePkh, 1000000n),
       makePayout(paymentCredential?.hash!, price - 2000000n),
       makePayout(royaltyPaymentCred?.hash!, 1000000n),
     ],
+    1000000n,
     paymentCredential?.hash!,
   ]),
 );
@@ -155,18 +158,18 @@ const contractUtxos = await lucid.utxosAt(contractAddress);
 
 const refUtxos = await lucid.utxosAt(refAddr);
 
-// const tx2 = await lucid
-//   .newTx()
-//   .collectFrom(contractUtxos, Data.to(new Constr(1, [])))
-//   .attachSpendingValidator(validator)
-//   .addSigner(sellerAddr)
-//   .complete();
+const tx2 = await lucid
+  .newTx()
+  .collectFrom(contractUtxos, Data.to(new Constr(1, [])))
+  .attachSpendingValidator(validator)
+  .addSigner(sellerAddr)
+  .complete();
 
-// const signed2 = await tx2.sign().complete();
+const signed2 = await tx2.sign().complete();
 
-// printExecutionDetails(signed2, "Withdraw ask (best case scenario)");
+printExecutionDetails(signed2, "Withdraw ask (best case scenario)");
 
-// emulator.awaitBlock(8);
+emulator.awaitBlock(8);
 
 lucid.selectWalletFromPrivateKey(buyerPk);
 
@@ -208,7 +211,6 @@ printExecutionDetails(signed3, "Purchase (best case scenario)");
 
 // Simulate a bulk purchase
 
-// const royaltyAddresses = [];
 lucid.selectWalletFromPrivateKey(sellerPk);
 
 let bulkLockTx = lucid.newTx();
@@ -222,10 +224,10 @@ for (const [unit, qty] of Object.entries(bulkPurchaseAssets)) {
     new Constr(0, [
       new Constr(1, []),
       [
-        makePayout(marketplacePkh, 2000000n),
         makePayout(paymentCredential?.hash!, myPrice - 4000000n),
         makePayout(royaltyPaymentCred?.hash!, 2000000n),
       ],
+      2000000n,
       paymentCredential?.hash!,
     ]),
   );
@@ -322,20 +324,50 @@ function printExecutionDetails(tx: TxSigned, name: string) {
     mem += parseInt(red.ex_units().mem().to_str(), 10);
   }
 
-  const text = `
-  ==================================
-  ${name}:
+  const remainingMem = MAX_TX_EX_MEM - mem;
+  const remainingSteps = MAX_TX_EX_STEPS - steps;
+  const txBytes = tx.txSigned.to_bytes().length;
+  const remainingTxBytes = MAX_TX_SIZE - txBytes;
+  const fee = tx.txSigned.body().fee().to_str();
 
-  Mem: ${mem} (Remaining: ${MAX_TX_EX_MEM - mem})
-  Steps: ${steps} (Remaining: ${MAX_TX_EX_STEPS - steps})
-  Tx Size: ${tx.txSigned.to_bytes().length} (Remaining: ${
-    MAX_TX_SIZE - tx.txSigned.to_bytes().length
-  })
-  Fee: ${tx.txSigned.body().fee().to_str()}
-  ==================================
-  `;
+  const text = `
+${colors.bold(colors.brightMagenta(name))}
+
+${colors.bold(colors.blue("mem"))}:       ${colors.brightGreen(mem.toString())}
+${colors.bold(colors.blue("remaining"))}: ${
+    colors.brightCyan(remainingMem.toString())
+  }
+
+${colors.bold(colors.blue("cpu"))}:       ${
+    colors.brightGreen(steps.toString())
+  }
+${colors.bold(colors.blue("remaining"))}: ${
+    colors.brightCyan(remainingSteps.toString())
+  }
+
+${colors.bold(colors.blue("tx size"))}:   ${
+    colors.brightGreen(txBytes.toString())
+  }
+${colors.bold(colors.blue("remaining"))}: ${
+    colors.brightCyan(remainingTxBytes.toString())
+  }
+
+${colors.bold(colors.blue("fee"))}: ${colors.brightGreen(fee.toUpperCase())}
+`;
 
   console.log(text);
+
+  if (remainingMem < 0) {
+    throw new Error("Out of mem");
+  }
+
+  if (remainingSteps < 0) {
+    throw new Error("Out of cpu");
+  }
+
+  if (remainingTxBytes < 0) {
+    throw new Error("Out of tx space");
+  }
 }
 
 function randomAssetId() {
