@@ -3,11 +3,11 @@
 <div align="center">
   <hr />
     <h2 align="center" style="border-bottom: none">
-      [jpg.store](https://jpg.store) v3 contracts powered by [Aiken](https://aiken-lang.org)
+      <a href="https://jpg.store">jpg.store</a> v3 contracts powered by <a href="https://aiken-lang.org">Aiken</a>
     </h2>
 
 [![Licence](https://img.shields.io/github/license/jpg-store/contracts-v3)](https://github.com/jpg-store/contracts-v3/blob/main/LICENSE)
-[![Tests](https://github.com/jpg-store/contracts-v3/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/jpg-store/contracts-v3/actions/workflows/tests.yml)
+[![Tests](https://github.com/jpg-store/contracts-v3/actions/workflows/tests.yaml/badge.svg?branch=main)](https://github.com/jpg-store/contracts-v3/actions/workflows/tests.yaml)
 
   <hr />
 </div>
