@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://avatars.githubusercontent.com/u/98781883?s=200&v=4" alt="Jpg Store" height="150" />
+  <img src="https://github.com/jpg-store/contracts-v3/blob/main/img/icon.png?raw=true" alt="Jpg Store" height="150" />
 
   <hr />
     <h2 align="center" style="border-bottom: none">
