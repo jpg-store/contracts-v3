@@ -1,6 +1,6 @@
-# Marketplace
-
 <div align="center">
+  <img src="https://avatars.githubusercontent.com/u/98781883?s=200&v=4" alt="Jpg Store" height="150" />
+
   <hr />
     <h2 align="center" style="border-bottom: none">
       <a href="https://jpg.store">jpg.store</a> v3 contracts powered by <a href="https://aiken-lang.org">Aiken</a>
