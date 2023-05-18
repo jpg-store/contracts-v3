@@ -1,0 +1,32 @@
+name: Tests
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  aiken:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: aiken-lang/setup-aiken@v0.1.0
+        with:
+          version: v1.0.5-alpha
+
+      - run: aiken fmt --check
+      - run: aiken check
+      - run: aiken build
+
+  e2e:
+    needs: aiken
+    runs-on: ubuntu-latest
+    steps:
+      - uses: denoland/setup-deno@v1
+        with:
+          deno-version: vx.x.x
+
+      - run: deno task e2e
+        working-directory: ./e2e
