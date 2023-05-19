@@ -18,7 +18,6 @@ import {
 import * as cbor from "https://deno.land/x/cbor@v1.4.1/index.js";
 
 import blueprint from "../plutus.json" assert { type: "json" };
-import { NetworkId } from "https://deno.land/x/lucid@0.10.1/src/core/libs/cardano_multiplatform_lib/cardano_multiplatform_lib.generated.js";
 
 const validator = readValidator();
 
