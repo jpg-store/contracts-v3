@@ -2,7 +2,6 @@ import "https://deno.land/std@0.184.0/dotenv/load.ts";
 import * as colors from "https://deno.land/std@0.184.0/fmt/colors.ts";
 import {
   Assets,
-  Blockfrost,
   C,
   Constr,
   Data,
@@ -19,6 +18,7 @@ import {
 import * as cbor from "https://deno.land/x/cbor@v1.4.1/index.js";
 
 import blueprint from "../plutus.json" assert { type: "json" };
+import { NetworkId } from "https://deno.land/x/lucid@0.10.1/src/core/libs/cardano_multiplatform_lib/cardano_multiplatform_lib.generated.js";
 
 const validator = readValidator();
 
@@ -26,14 +26,6 @@ const sellerPk = generatePrivateKey();
 const refPk = generatePrivateKey();
 const buyerPk = generatePrivateKey();
 const royaltyPk = generatePrivateKey();
-
-const l = await Lucid.new(
-  new Blockfrost(
-    "https://cardano-preview.blockfrost.io/api/v0",
-    Deno.env.get("BLOCKFROST_API_KEY"),
-  ),
-  "Preview",
-);
 
 const myAsset = {
   ["627c22b8a13e0f7dad08ea3cc25ac6f254822acf9ded1b52b8578b413d0acfbf35c28c6346d8de3e27b7ebeab19022a24d9cedb87e08078b03a6dd13"]:
@@ -51,6 +43,8 @@ const bulkPurchaseAssets: Assets = new Array(BULK_PURCHASE_SIZE)
     acc[randomAssetId()] = 1n;
     return acc;
   }, {});
+
+const l = await Lucid.new(undefined, "Preprod");
 
 const sellerAddr = await l
   .selectWalletFromPrivateKey(sellerPk)
