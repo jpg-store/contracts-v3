@@ -109,7 +109,11 @@ pub fn check_marketplace_payout(
   datum_check && address_check && quantity_check && policy_check
 }
 
-test check_marketplace_payout_1() {
+/// Test that `check_marketplace_payout` returns `True` when
+/// given the correct arguments. That means, an `Output` with
+/// an address equal to the hardcoded marketplace address, and
+/// a value greater than or equal to the marketplace fee.
+test check_marketplace_payout_valid_input() {
   let datum_tag =
     OutputReference {
       transaction_id: TransactionId { hash: #"00" },
@@ -128,6 +132,63 @@ test check_marketplace_payout_1() {
     }
 
   check_marketplace_payout(output, 2000000, datum_tag)
+}
+
+/// This test makes sure that the marketplace payout
+/// output address is the hardcoded marketplace address.
+/// If the output address does not match the marketplace address
+/// `check_marketplace_payout` will return `False`.
+test check_marketplace_payout_invalid_address() {
+  let datum_tag =
+    OutputReference {
+      transaction_id: TransactionId { hash: #"00" },
+      output_index: 0,
+    }
+      |> builtin.serialise_data
+      |> builtin.blake2b_256
+      |> DatumHash
+
+  let output =
+    Output {
+      // anything but the marketplace address
+      address: Address {
+        payment_credential: VerificationKeyCredential(
+          #"fff60f3b5ea7153e0acc7a803e4401d44b8ed1bae1c7baaad1a62a81",
+        ),
+        stake_credential: None,
+      },
+      value: value.from_lovelace(2000000),
+      datum: datum_tag,
+      reference_script: None,
+    }
+
+  !check_marketplace_payout(output, 2000000, datum_tag)
+}
+
+/// This test makes sure that the marketplace payout
+/// output value is greater than or equal to the marketplace fee.
+/// If the value at the ouput is less than the marketplace fee
+/// in the datum `check_marketplace_payout` will return `False`.
+test check_marketplace_payout_incorrect_amount() {
+  let datum_tag =
+    OutputReference {
+      transaction_id: TransactionId { hash: #"00" },
+      output_index: 0,
+    }
+      |> builtin.serialise_data
+      |> builtin.blake2b_256
+      |> DatumHash
+
+  let output =
+    Output {
+      // anything but the marketplace address
+      address: marketplace_addr(),
+      value: value.from_lovelace(1000000),
+      datum: datum_tag,
+      reference_script: None,
+    }
+
+  !check_marketplace_payout(output, 2000000, datum_tag)
 }
 
 /// Check that payouts and payout outputs
@@ -192,7 +253,10 @@ pub fn check_payouts(
   }
 }
 
-test check_payouts_1() {
+/// This test makes sure the `check_payouts` returns true
+/// when give the correct inputs. It is safe to have trailing outputs
+/// in the transaction as long as the payouts are correct.
+test check_payouts_with_trailing_outputs() {
   let test_royalty_addr =
     Address {
       payment_credential: VerificationKeyCredential(
@@ -232,7 +296,150 @@ test check_payouts_1() {
       |> builtin.blake2b_256
       |> DatumHash
 
-  // 5% royalties
+  let out_1 =
+    Output {
+      address: test_royalty_addr,
+      value: value.from_lovelace(3100000),
+      datum: datum_tag,
+      reference_script: None,
+    }
+
+  let out_2 =
+    Output {
+      address: test_seller_addr,
+      value: value.from_lovelace(95000000),
+      datum: datum_tag,
+      reference_script: None,
+    }
+
+  let out_random =
+    Output {
+      address: test_random_addr,
+      value: value.from_lovelace(1000000),
+      datum: datum_tag,
+      reference_script: None,
+    }
+
+  let outputs =
+    list.concat([out_1, out_2], list.repeat(out_random, 100))
+
+  check_payouts(outputs, test_royalty_payouts, datum_tag)
+}
+
+/// This test makes sure that `check_payouts` returns `False` when
+/// the payout outputs are not sequential. If a random output is in between
+/// payout outputs then the transaction was constructed incorrectly.
+test check_payouts_with_mixed_outputs() {
+  let test_royalty_addr =
+    Address {
+      payment_credential: VerificationKeyCredential(
+        #"80f60f3b5ea7153e0acc7a803e4401d44b8ed1bae1c7baaad1a62a81",
+      ),
+      stake_credential: None,
+    }
+
+  let test_seller_addr =
+    Address {
+      payment_credential: VerificationKeyCredential(
+        #"90f60f3b5ea7153e0acc7a803e4401d44b8ed1bae1c7baaad1a62a81",
+      ),
+      stake_credential: None,
+    }
+
+  let test_random_addr =
+    Address {
+      payment_credential: VerificationKeyCredential(
+        #"fff60f3b5ea7153e0acc7a803e4401d44b8ed1bae1c7baaad1a62a81",
+      ),
+      stake_credential: None,
+    }
+
+  let test_royalty_payouts =
+    [
+      Payout { address: test_royalty_addr, amount_lovelace: 3000000 },
+      Payout { address: test_seller_addr, amount_lovelace: 95000000 },
+    ]
+
+  let datum_tag =
+    OutputReference {
+      transaction_id: TransactionId { hash: #"00" },
+      output_index: 0,
+    }
+      |> builtin.serialise_data
+      |> builtin.blake2b_256
+      |> DatumHash
+
+  let out_1 =
+    Output {
+      address: test_royalty_addr,
+      value: value.from_lovelace(3000000),
+      datum: datum_tag,
+      reference_script: None,
+    }
+
+  let out_2 =
+    Output {
+      address: test_seller_addr,
+      value: value.from_lovelace(95000000),
+      datum: datum_tag,
+      reference_script: None,
+    }
+
+  let out_random =
+    Output {
+      address: test_random_addr,
+      value: value.from_lovelace(1000000),
+      datum: datum_tag,
+      reference_script: None,
+    }
+
+  !check_payouts([out_1, out_random, out_2], test_royalty_payouts, datum_tag)
+}
+
+/// This test checks that the check_payouts function works correctly when
+/// when the output list has leading outputs that are not part of the
+/// payouts. It should return `False` because we expect the leading outputs
+/// to have been filtered out before using this function.
+test check_payouts_with_leading_outputs() {
+  let test_royalty_addr =
+    Address {
+      payment_credential: VerificationKeyCredential(
+        #"80f60f3b5ea7153e0acc7a803e4401d44b8ed1bae1c7baaad1a62a81",
+      ),
+      stake_credential: None,
+    }
+
+  let test_seller_addr =
+    Address {
+      payment_credential: VerificationKeyCredential(
+        #"90f60f3b5ea7153e0acc7a803e4401d44b8ed1bae1c7baaad1a62a81",
+      ),
+      stake_credential: None,
+    }
+
+  let test_random_addr =
+    Address {
+      payment_credential: VerificationKeyCredential(
+        #"fff60f3b5ea7153e0acc7a803e4401d44b8ed1bae1c7baaad1a62a81",
+      ),
+      stake_credential: None,
+    }
+
+  let test_royalty_payouts =
+    [
+      Payout { address: test_royalty_addr, amount_lovelace: 3000000 },
+      Payout { address: test_seller_addr, amount_lovelace: 95000000 },
+    ]
+
+  let datum_tag =
+    OutputReference {
+      transaction_id: TransactionId { hash: #"00" },
+      output_index: 0,
+    }
+      |> builtin.serialise_data
+      |> builtin.blake2b_256
+      |> DatumHash
+
   let out_1 =
     Output {
       address: test_royalty_addr,
@@ -258,7 +465,208 @@ test check_payouts_1() {
     }
 
   let outputs =
+    list.concat(list.repeat(out_random, 100), [out_1, out_2])
+
+  !check_payouts(outputs, test_royalty_payouts, datum_tag)
+}
+
+/// If the payout output value does not match the datum payout amount
+/// then `check_payouts` should return `False`.
+test check_payouts_with_wrong_amounts() {
+  let test_royalty_addr =
+    Address {
+      payment_credential: VerificationKeyCredential(
+        #"80f60f3b5ea7153e0acc7a803e4401d44b8ed1bae1c7baaad1a62a81",
+      ),
+      stake_credential: None,
+    }
+
+  let test_seller_addr =
+    Address {
+      payment_credential: VerificationKeyCredential(
+        #"90f60f3b5ea7153e0acc7a803e4401d44b8ed1bae1c7baaad1a62a81",
+      ),
+      stake_credential: None,
+    }
+
+  let test_random_addr =
+    Address {
+      payment_credential: VerificationKeyCredential(
+        #"fff60f3b5ea7153e0acc7a803e4401d44b8ed1bae1c7baaad1a62a81",
+      ),
+      stake_credential: None,
+    }
+
+  let test_royalty_payouts =
+    [
+      Payout { address: test_royalty_addr, amount_lovelace: 3000000 },
+      Payout { address: test_seller_addr, amount_lovelace: 95000000 },
+    ]
+
+  let datum_tag =
+    OutputReference {
+      transaction_id: TransactionId { hash: #"00" },
+      output_index: 0,
+    }
+      |> builtin.serialise_data
+      |> builtin.blake2b_256
+      |> DatumHash
+
+  let out_1 =
+    Output {
+      address: test_royalty_addr,
+      value: value.from_lovelace(3000000),
+      datum: datum_tag,
+      reference_script: None,
+    }
+
+  let out_2 =
+    Output {
+      address: test_seller_addr,
+      value: value.from_lovelace(85000000),
+      datum: datum_tag,
+      reference_script: None,
+    }
+
+  let out_random =
+    Output {
+      address: test_random_addr,
+      value: value.from_lovelace(1000000),
+      datum: datum_tag,
+      reference_script: None,
+    }
+
+  let outputs =
     list.concat([out_1, out_2], list.repeat(out_random, 100))
+
+  !check_payouts(outputs, test_royalty_payouts, datum_tag)
+}
+
+/// If the payout output address does not match the datum payout address 
+/// then `check_payouts` should return `False`.
+test check_payouts_with_wrong_address() {
+  let test_royalty_addr =
+    Address {
+      payment_credential: VerificationKeyCredential(
+        #"80f60f3b5ea7153e0acc7a803e4401d44b8ed1bae1c7baaad1a62a81",
+      ),
+      stake_credential: None,
+    }
+
+  let test_seller_addr =
+    Address {
+      payment_credential: VerificationKeyCredential(
+        #"90f60f3b5ea7153e0acc7a803e4401d44b8ed1bae1c7baaad1a62a81",
+      ),
+      stake_credential: None,
+    }
+
+  let test_random_addr =
+    Address {
+      payment_credential: VerificationKeyCredential(
+        #"fff60f3b5ea7153e0acc7a803e4401d44b8ed1bae1c7baaad1a62a81",
+      ),
+      stake_credential: None,
+    }
+
+  let test_royalty_payouts =
+    [
+      Payout { address: test_royalty_addr, amount_lovelace: 3000000 },
+      Payout { address: test_seller_addr, amount_lovelace: 95000000 },
+    ]
+
+  let datum_tag =
+    OutputReference {
+      transaction_id: TransactionId { hash: #"00" },
+      output_index: 0,
+    }
+      |> builtin.serialise_data
+      |> builtin.blake2b_256
+      |> DatumHash
+
+  let out_1 =
+    Output {
+      address: Address {
+        payment_credential: VerificationKeyCredential(
+          #"fff60f3b5ea7153e0acc7a803e4401d44b8ed1bae1c7baaad1a62a81",
+        ),
+        stake_credential: None,
+      },
+      value: value.from_lovelace(3000000),
+      datum: datum_tag,
+      reference_script: None,
+    }
+
+  let out_2 =
+    Output {
+      address: test_seller_addr,
+      value: value.from_lovelace(95000000),
+      datum: datum_tag,
+      reference_script: None,
+    }
+
+  let out_random =
+    Output {
+      address: test_random_addr,
+      value: value.from_lovelace(1000000),
+      datum: datum_tag,
+      reference_script: None,
+    }
+
+  let outputs =
+    list.concat([out_1, out_2], list.repeat(out_random, 100))
+
+  !check_payouts(outputs, test_royalty_payouts, datum_tag)
+}
+
+/// Test that things work with a single payout
+test check_payouts_with_single_payout() {
+  let test_royalty_addr =
+    Address {
+      payment_credential: VerificationKeyCredential(
+        #"80f60f3b5ea7153e0acc7a803e4401d44b8ed1bae1c7baaad1a62a81",
+      ),
+      stake_credential: None,
+    }
+
+  let test_random_addr =
+    Address {
+      payment_credential: VerificationKeyCredential(
+        #"fff60f3b5ea7153e0acc7a803e4401d44b8ed1bae1c7baaad1a62a81",
+      ),
+      stake_credential: None,
+    }
+
+  let test_royalty_payouts =
+    [Payout { address: test_royalty_addr, amount_lovelace: 3000000 }]
+
+  let datum_tag =
+    OutputReference {
+      transaction_id: TransactionId { hash: #"00" },
+      output_index: 0,
+    }
+      |> builtin.serialise_data
+      |> builtin.blake2b_256
+      |> DatumHash
+
+  let out_1 =
+    Output {
+      address: test_royalty_addr,
+      value: value.from_lovelace(3000000),
+      datum: datum_tag,
+      reference_script: None,
+    }
+
+  let out_random =
+    Output {
+      address: test_random_addr,
+      value: value.from_lovelace(1000000),
+      datum: datum_tag,
+      reference_script: None,
+    }
+
+  let outputs =
+    list.concat([out_1], list.repeat(out_random, 100))
 
   check_payouts(outputs, test_royalty_payouts, datum_tag)
 }
