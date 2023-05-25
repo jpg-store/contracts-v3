@@ -216,7 +216,7 @@
           ]
         },
         {
-          "title": "CancelOrUpdate",
+          "title": "WithdrawOrUpdate",
           "description": "Cancel or update a listing.",
           "dataType": "constructor",
           "index": 1,
