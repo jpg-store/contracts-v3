@@ -8,6 +8,7 @@ import {
   marketplaceAddr,
   singleAsset,
   test,
+  testFail,
 } from "./test.ts";
 
 const price = 5000000n;

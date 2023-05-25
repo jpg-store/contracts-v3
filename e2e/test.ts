@@ -1,3 +1,4 @@
+import * as colors from "https://deno.land/std@0.184.0/fmt/colors.ts";
 import {
   Assets,
   C,
@@ -152,6 +153,25 @@ export async function test(
   });
 
   printExecutionDetails(txSigned, name);
+}
+
+export async function testFail(
+  name: string,
+  fn: (ctx: TestContext) => Promise<TxSigned>,
+) {
+  try {
+    await test(name, fn);
+
+    const err = `
+  ${colors.bold(colors.brightMagenta(name))} - ${colors.red("failed")}`;
+
+    throw new Error(err);
+  } catch {
+    const message = `
+  ${colors.bold(colors.brightMagenta(name))} - ${colors.green("passed")}`;
+
+    console.log(message);
+  }
 }
 
 export function makePayout(cred: string, amount: bigint) {

@@ -40,31 +40,32 @@ export function printExecutionDetails(tx: TxSigned, name: string) {
   const fee = tx.txSigned.body().fee().to_str();
 
   const text = `
-  ${colors.bold(colors.brightMagenta(name))}
+  ${colors.bold(colors.brightMagenta(name))} - ${colors.green("passed")}
   
-  ${colors.bold(colors.blue("mem"))}:       ${
+    ${colors.bold(colors.blue("mem"))}:       ${
     colors.brightGreen(mem.toString())
   }
-  ${colors.bold(colors.blue("remaining"))}: ${
+    ${colors.bold(colors.blue("remaining"))}: ${
     colors.brightCyan(remainingMem.toString())
   }
-  
-  ${colors.bold(colors.blue("cpu"))}:       ${
+    
+    ${colors.bold(colors.blue("cpu"))}:       ${
     colors.brightGreen(steps.toString())
   }
-  ${colors.bold(colors.blue("remaining"))}: ${
+    ${colors.bold(colors.blue("remaining"))}: ${
     colors.brightCyan(remainingSteps.toString())
   }
-  
-  ${colors.bold(colors.blue("tx size"))}:   ${
+    
+    ${colors.bold(colors.blue("tx size"))}:   ${
     colors.brightGreen(txBytes.toString())
   }
-  ${colors.bold(colors.blue("remaining"))}: ${
+    ${colors.bold(colors.blue("remaining"))}: ${
     colors.brightCyan(remainingTxBytes.toString())
   }
-  
-  ${colors.bold(colors.blue("fee"))}: ${colors.brightGreen(fee.toUpperCase())}
-  `;
+    
+    ${colors.bold(colors.blue("fee"))}: ${
+    colors.brightGreen(fee.toUpperCase())
+  }`;
 
   console.log(text);
 
