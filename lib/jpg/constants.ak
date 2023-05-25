@@ -11,8 +11,6 @@ pub fn marketplace_addr() -> Address {
   }
 }
 
-pub const marketplace_pct: Int =
-  20
+pub const marketplace_pct: Int = 20
 
-pub const min_payout: Int =
-  1000000
+pub const min_payout: Int = 1000000

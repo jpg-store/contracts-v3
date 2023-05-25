@@ -38,32 +38,23 @@ validator {
   /// Validate that the signer is the owner or that payouts
   /// are present as outputs and that the tag is correct.
   fn spend(datum: Datum, redeemer: Redeemer, ctx: ScriptContext) -> Bool {
-    let ScriptContext { transaction, purpose } =
-      ctx
+    let ScriptContext { transaction, purpose } = ctx
 
-    let Transaction { outputs, extra_signatories, .. } =
-      transaction
+    let Transaction { outputs, extra_signatories, .. } = transaction
 
     // Match on the action.
     when redeemer is {
       Buy { payout_outputs_offset } -> {
-        expect Spend(out_ref) =
-          purpose
-
+        expect Spend(out_ref) = purpose
         // for double satisfaction
         let datum_tag =
           out_ref
             |> serialise_data
             |> blake2b_256
             |> DatumHash
-
-        let Datum { reserved_for, payouts, marketplace_fee, .. } =
-          datum
-
+        let Datum { reserved_for, payouts, marketplace_fee, .. } = datum
         // Find the `outputs` that correspond to `payouts`.
-        let payout_outputs =
-          find_payout_outputs(outputs, payout_outputs_offset)
-
+        let payout_outputs = find_payout_outputs(outputs, payout_outputs_offset)
         let has_correct_payouts =
           // If `marketplace_fee` is `0` then we can
           // assume there is no output for it.
@@ -72,9 +63,7 @@ validator {
           } else {
             // When there is a marketplace fee we can assume
             // it is the first of the `payout_outputs`.
-            expect [marketplace_output, ..rest_outputs] =
-              payout_outputs
-
+            expect [marketplace_output, ..rest_outputs] = payout_outputs
             // Make sure that the marketplace output
             // is correct.
             let has_correct_marketplace_payout =
@@ -83,26 +72,21 @@ validator {
                 marketplace_fee,
                 datum_tag,
               )
-
             has_correct_marketplace_payout && check_payouts(
               rest_outputs,
               payouts,
               datum_tag,
             )
           }
-
         when reserved_for is {
           Some(buyer) ->
             // In addition to payouts, we need to check that
             // the current buyer matches the buyer that this listing
             // was reserved for.
             has_correct_payouts && list.has(extra_signatories, buyer)
-
-          None ->
-            has_correct_payouts
+          None -> has_correct_payouts
         }
       }
-
       // There's not much to do here. An asset
       // owner can cancel or update their listing
       // at any time.

@@ -81,30 +81,23 @@ pub fn check_marketplace_payout(
   marketplace_fee: Int,
   datum_tag: Datum,
 ) -> Bool {
-  let Output { address: output_address, value, datum, .. } =
-    output
+  let Output { address: output_address, value, datum, .. } = output
 
-  let datum_check =
-    datum == datum_tag
+  let datum_check = datum == datum_tag
 
   // Match hardcoded marketplace address
-  let address_check =
-    output_address == marketplace_addr()
+  let address_check = output_address == marketplace_addr()
 
-  expect [(policy, tokens)] =
-    to_list_advanced_usage(value)
+  expect [(policy, tokens)] = to_list_advanced_usage(value)
 
-  expect [(_, quantity)] =
-    dict.to_list(tokens)
+  expect [(_, quantity)] = dict.to_list(tokens)
 
-  let policy_check =
-    policy == ""
+  let policy_check = policy == ""
 
   // Output value quantity must equal the marketplace fee
   // this prevents people from not paying a fee by submitting
   // transactions not constructed by Jpg.
-  let quantity_check =
-    quantity >= marketplace_fee
+  let quantity_check = quantity >= marketplace_fee
 
   datum_check && address_check && quantity_check && policy_check
 }
@@ -202,39 +195,30 @@ pub fn check_payouts(
   payouts: List<Payout>,
   datum_tag: Datum,
 ) -> Bool {
-  expect [first_output, ..rest_outputs] =
-    outputs
+  expect [first_output, ..rest_outputs] = outputs
 
-  let Output { address: output_address, value, datum, .. } =
-    first_output
+  let Output { address: output_address, value, datum, .. } = first_output
 
   if datum == datum_tag {
-    expect [payout, ..rest_payouts] =
-      payouts
+    expect [payout, ..rest_payouts] = payouts
 
-    let Payout { address: payout_address, amount_lovelace } =
-      payout
+    let Payout { address: payout_address, amount_lovelace } = payout
 
     // The `Output` address must match
     // the address specified in the corresponding
     // payout from the datum.
-    let address_check =
-      payout_address == output_address
+    let address_check = payout_address == output_address
 
-    expect [(policy, tokens)] =
-      to_list_advanced_usage(value)
+    expect [(policy, tokens)] = to_list_advanced_usage(value)
 
-    expect [(_, quantity)] =
-      dict.to_list(tokens)
+    expect [(_, quantity)] = dict.to_list(tokens)
 
-    let policy_check =
-      policy == ""
+    let policy_check = policy == ""
 
     // The quantity in the output must equal
     // the amount specified in the corresponding
     // payout from the datum.
-    let quantity_check =
-      quantity >= amount_lovelace
+    let quantity_check = quantity >= amount_lovelace
 
     let rest_outputs_check =
       when rest_payouts is {
@@ -320,8 +304,7 @@ test check_payouts_with_trailing_outputs() {
       reference_script: None,
     }
 
-  let outputs =
-    list.concat([out_1, out_2], list.repeat(out_random, 100))
+  let outputs = list.concat([out_1, out_2], list.repeat(out_random, 100))
 
   check_payouts(outputs, test_royalty_payouts, datum_tag)
 }
@@ -464,8 +447,7 @@ test check_payouts_with_leading_outputs() {
       reference_script: None,
     }
 
-  let outputs =
-    list.concat(list.repeat(out_random, 100), [out_1, out_2])
+  let outputs = list.concat(list.repeat(out_random, 100), [out_1, out_2])
 
   !check_payouts(outputs, test_royalty_payouts, datum_tag)
 }
@@ -536,8 +518,7 @@ test check_payouts_with_wrong_amounts() {
       reference_script: None,
     }
 
-  let outputs =
-    list.concat([out_1, out_2], list.repeat(out_random, 100))
+  let outputs = list.concat([out_1, out_2], list.repeat(out_random, 100))
 
   !check_payouts(outputs, test_royalty_payouts, datum_tag)
 }
@@ -613,8 +594,7 @@ test check_payouts_with_wrong_address() {
       reference_script: None,
     }
 
-  let outputs =
-    list.concat([out_1, out_2], list.repeat(out_random, 100))
+  let outputs = list.concat([out_1, out_2], list.repeat(out_random, 100))
 
   !check_payouts(outputs, test_royalty_payouts, datum_tag)
 }
@@ -665,8 +645,7 @@ test check_payouts_with_single_payout() {
       reference_script: None,
     }
 
-  let outputs =
-    list.concat([out_1], list.repeat(out_random, 100))
+  let outputs = list.concat([out_1], list.repeat(out_random, 100))
 
   check_payouts(outputs, test_royalty_payouts, datum_tag)
 }
