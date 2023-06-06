@@ -3,7 +3,7 @@ use aiken/dict
 use aiken/list
 use aiken/transaction.{Datum, DatumHash, Output, OutputReference, TransactionId}
 use aiken/transaction/credential.{Address, VerificationKeyCredential}
-use aiken/transaction/value.{to_list_advanced_usage}
+use aiken/transaction/value.{to_dict}
 use jpg/constants.{marketplace_addr}
 use jpg/types.{Payout}
 
@@ -88,7 +88,10 @@ pub fn check_marketplace_payout(
   // Match hardcoded marketplace address
   let address_check = output_address == marketplace_addr()
 
-  expect [(policy, tokens)] = to_list_advanced_usage(value)
+  expect [(policy, tokens)] =
+    value
+      |> to_dict
+      |> dict.to_list
 
   expect [(_, quantity)] = dict.to_list(tokens)
 
@@ -209,7 +212,10 @@ pub fn check_payouts(
     // payout from the datum.
     let address_check = payout_address == output_address
 
-    expect [(policy, tokens)] = to_list_advanced_usage(value)
+    expect [(policy, tokens)] =
+      value
+        |> to_dict
+        |> dict.to_list
 
     expect [(_, quantity)] = dict.to_list(tokens)
 
