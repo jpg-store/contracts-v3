@@ -1,4 +1,10 @@
-import { Constr, Data } from "https://deno.land/x/lucid@0.10.1/mod.ts";
+import {
+  C,
+  Constr,
+  Data,
+  fromHex,
+  toHex,
+} from "https://deno.land/x/lucid@0.10.1/mod.ts";
 
 import {
   BULK_PURCHASE_SIZE,
@@ -88,9 +94,9 @@ test("Purchase (best case scenario)", async (ctx) => {
 
   ctx.lucid.selectWalletFromPrivateKey(ctx.buyerPk);
 
-  const datumTag = Data.to(
+  const datumTag = Data.to(toHex(C.hash_blake2b256(fromHex(Data.to(
     new Constr(0, [new Constr(0, [tx.toHash()]), BigInt(0)]),
-  );
+  )))));
 
   const contractUtxos = await ctx.lucid.utxosAt(ctx.contractAddress);
 
@@ -102,21 +108,21 @@ test("Purchase (best case scenario)", async (ctx) => {
     .readFrom(refUtxos)
     .payToAddressWithData(
       marketplaceAddr,
-      { asHash: datumTag },
+      { inline: datumTag },
       {
         lovelace: 1000000n,
       },
     )
     .payToAddressWithData(
       ctx.sellerAddr,
-      { asHash: datumTag },
+      { inline: datumTag },
       {
         lovelace: 3000000n,
       },
     )
     .payToAddressWithData(
       ctx.royaltyAddr,
-      { asHash: datumTag },
+      { inline: datumTag },
       {
         lovelace: 1000000n,
       },
@@ -155,7 +161,7 @@ test("Bulk purchase (worst case scenario)", async (ctx) => {
 
     bulkLockTx = bulkLockTx.payToContract(
       ctx.contractAddress,
-      { asHash: datum },
+      { inline: datum },
       {
         [unit]: qty,
       },
@@ -180,44 +186,38 @@ test("Bulk purchase (worst case scenario)", async (ctx) => {
     .map((utxo, index) => {
       return ctx.lucid
         .newTx()
-        .collectFrom(
-          [utxo],
-          Data.to(new Constr(0, [BigInt(index * 3)])),
-        )
+        .collectFrom([utxo], Data.to(new Constr(0, [BigInt(index * 3)])))
         .readFrom(refUtxos)
         .addSigner(ctx.buyerAddr);
     })
-    .reduce(
-      (acc, mappedTx) => {
-        return acc.compose(mappedTx);
-      },
-      ctx.lucid.newTx(),
-    );
+    .reduce((acc, mappedTx) => {
+      return acc.compose(mappedTx);
+    }, ctx.lucid.newTx());
 
   for (let i = 0; i < BULK_PURCHASE_SIZE; i++) {
     const oIndex = contractUtxos2[i].outputIndex;
-    const datumTag = Data.to(
+    const datumTag = Data.to(toHex(C.hash_blake2b256(fromHex(Data.to(
       new Constr(0, [new Constr(0, [bulkLockSigned.toHash()]), BigInt(oIndex)]),
-    );
+    )))));
 
     bulkPurchaseTx = bulkPurchaseTx
       .payToAddressWithData(
         marketplaceAddr,
-        { asHash: datumTag },
+        { inline: datumTag },
         {
           lovelace: 2000000n,
         },
       )
       .payToAddressWithData(
         ctx.sellerAddr,
-        { asHash: datumTag },
+        { inline: datumTag },
         {
           lovelace: 96000000n,
         },
       )
       .payToAddressWithData(
         ctx.royaltyAddr,
-        { asHash: datumTag },
+        { inline: datumTag },
         {
           lovelace: 2000000n,
         },

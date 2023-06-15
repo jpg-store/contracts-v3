@@ -1,6 +1,6 @@
 use aiken/builtin.{blake2b_256, serialise_data}
 use aiken/list
-use aiken/transaction.{DatumHash, ScriptContext, Spend, Transaction}
+use aiken/transaction.{InlineDatum, ScriptContext, Spend, Transaction}
 use jpg/types.{Payout, VerificationKeyHash}
 use jpg/utils.{check_marketplace_payout, check_payouts, find_payout_outputs}
 
@@ -51,7 +51,7 @@ validator {
           out_ref
             |> serialise_data
             |> blake2b_256
-            |> DatumHash
+            |> InlineDatum
         let Datum { reserved_for, payouts, marketplace_fee, .. } = datum
         // Find the `outputs` that correspond to `payouts`.
         let payout_outputs = find_payout_outputs(outputs, payout_outputs_offset)

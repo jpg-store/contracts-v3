@@ -37,7 +37,10 @@ export type TestContext = {
 const marketplacePkh =
   "70e60f3b5ea7153e0acc7a803e4401d44b8ed1bae1c7baaad1a62a72";
 
-export const BULK_PURCHASE_SIZE = 43;
+const marketplaceStakePkh =
+  "81728e7ed4cf324e1323135e7e6d931f01e30792d9cdf17129cb806d";
+
+export const BULK_PURCHASE_SIZE = 42;
 
 const validator = readValidator();
 
@@ -53,12 +56,13 @@ export const bulkPurchaseAssets: Assets = new Array(BULK_PURCHASE_SIZE)
     return acc;
   }, {});
 
-export const marketplaceAddr = C.EnterpriseAddress.new(
+export const marketplaceAddr = C.BaseAddress.new(
   0,
   C.StakeCredential.from_keyhash(C.Ed25519KeyHash.from_hex(marketplacePkh)),
-)
-  .to_address()
-  .to_bech32("addr_test");
+  C.StakeCredential.from_keyhash(
+    C.Ed25519KeyHash.from_hex(marketplaceStakePkh),
+  ),
+).to_address().to_bech32("addr_test");
 
 export async function test(
   name: string,
