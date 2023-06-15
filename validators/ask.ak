@@ -1,6 +1,6 @@
 use aiken/builtin.{blake2b_256, serialise_data}
 use aiken/list
-use aiken/transaction.{InlineDatum, ScriptContext, Spend, Transaction}
+use aiken/transaction.{InlineDatum, NoDatum, ScriptContext, Spend, Transaction}
 use jpg/types.{Payout, VerificationKeyHash}
 use jpg/utils.{check_marketplace_payout, check_payouts, find_payout_outputs}
 
@@ -75,7 +75,7 @@ validator {
             has_correct_marketplace_payout && check_payouts(
               rest_outputs,
               payouts,
-              datum_tag,
+              NoDatum,
             )
           }
         when reserved_for is {

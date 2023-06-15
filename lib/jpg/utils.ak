@@ -1,7 +1,9 @@
 use aiken/builtin.{tail_list}
 use aiken/dict
 use aiken/list
-use aiken/transaction.{Datum, DatumHash, Output, OutputReference, TransactionId}
+use aiken/transaction.{
+  Datum, InlineDatum, NoDatum, Output, OutputReference, TransactionId,
+}
 use aiken/transaction/credential.{Address, VerificationKeyCredential}
 use aiken/transaction/value.{to_dict}
 use jpg/constants.{marketplace_addr}
@@ -117,7 +119,7 @@ test check_marketplace_payout_valid_input() {
     }
       |> builtin.serialise_data
       |> builtin.blake2b_256
-      |> DatumHash
+      |> InlineDatum
 
   let output =
     Output {
@@ -142,7 +144,7 @@ test check_marketplace_payout_invalid_address() {
     }
       |> builtin.serialise_data
       |> builtin.blake2b_256
-      |> DatumHash
+      |> InlineDatum
 
   let output =
     Output {
@@ -173,7 +175,7 @@ test check_marketplace_payout_incorrect_amount() {
     }
       |> builtin.serialise_data
       |> builtin.blake2b_256
-      |> DatumHash
+      |> InlineDatum
 
   let output =
     Output {
@@ -234,7 +236,7 @@ pub fn check_payouts(
           True
         _ ->
           // continue with remaining outputs and payouts
-          check_payouts(rest_outputs, rest_payouts, datum_tag)
+          check_payouts(rest_outputs, rest_payouts, NoDatum)
       }
 
     address_check && policy_check && quantity_check && rest_outputs_check
@@ -284,7 +286,7 @@ test check_payouts_with_trailing_outputs() {
     }
       |> builtin.serialise_data
       |> builtin.blake2b_256
-      |> DatumHash
+      |> InlineDatum
 
   let out_1 =
     Output {
@@ -298,7 +300,7 @@ test check_payouts_with_trailing_outputs() {
     Output {
       address: test_seller_addr,
       value: value.from_lovelace(95000000),
-      datum: datum_tag,
+      datum: NoDatum,
       reference_script: None,
     }
 
@@ -356,7 +358,7 @@ test check_payouts_with_mixed_outputs() {
     }
       |> builtin.serialise_data
       |> builtin.blake2b_256
-      |> DatumHash
+      |> InlineDatum
 
   let out_1 =
     Output {
@@ -370,7 +372,7 @@ test check_payouts_with_mixed_outputs() {
     Output {
       address: test_seller_addr,
       value: value.from_lovelace(95000000),
-      datum: datum_tag,
+      datum: NoDatum,
       reference_script: None,
     }
 
@@ -378,7 +380,7 @@ test check_payouts_with_mixed_outputs() {
     Output {
       address: test_random_addr,
       value: value.from_lovelace(1000000),
-      datum: datum_tag,
+      datum: NoDatum,
       reference_script: None,
     }
 
@@ -427,7 +429,7 @@ test check_payouts_with_leading_outputs() {
     }
       |> builtin.serialise_data
       |> builtin.blake2b_256
-      |> DatumHash
+      |> InlineDatum
 
   let out_1 =
     Output {
@@ -441,7 +443,7 @@ test check_payouts_with_leading_outputs() {
     Output {
       address: test_seller_addr,
       value: value.from_lovelace(95000000),
-      datum: datum_tag,
+      datum: NoDatum,
       reference_script: None,
     }
 
@@ -449,7 +451,7 @@ test check_payouts_with_leading_outputs() {
     Output {
       address: test_random_addr,
       value: value.from_lovelace(1000000),
-      datum: datum_tag,
+      datum: NoDatum,
       reference_script: None,
     }
 
@@ -498,7 +500,7 @@ test check_payouts_with_wrong_amounts() {
     }
       |> builtin.serialise_data
       |> builtin.blake2b_256
-      |> DatumHash
+      |> InlineDatum
 
   let out_1 =
     Output {
@@ -512,7 +514,7 @@ test check_payouts_with_wrong_amounts() {
     Output {
       address: test_seller_addr,
       value: value.from_lovelace(85000000),
-      datum: datum_tag,
+      datum: NoDatum,
       reference_script: None,
     }
 
@@ -520,7 +522,7 @@ test check_payouts_with_wrong_amounts() {
     Output {
       address: test_random_addr,
       value: value.from_lovelace(1000000),
-      datum: datum_tag,
+      datum: NoDatum,
       reference_script: None,
     }
 
@@ -569,7 +571,7 @@ test check_payouts_with_wrong_address() {
     }
       |> builtin.serialise_data
       |> builtin.blake2b_256
-      |> DatumHash
+      |> InlineDatum
 
   let out_1 =
     Output {
@@ -588,7 +590,7 @@ test check_payouts_with_wrong_address() {
     Output {
       address: test_seller_addr,
       value: value.from_lovelace(95000000),
-      datum: datum_tag,
+      datum: NoDatum,
       reference_script: None,
     }
 
@@ -633,7 +635,7 @@ test check_payouts_with_single_payout() {
     }
       |> builtin.serialise_data
       |> builtin.blake2b_256
-      |> DatumHash
+      |> InlineDatum
 
   let out_1 =
     Output {
@@ -647,7 +649,7 @@ test check_payouts_with_single_payout() {
     Output {
       address: test_random_addr,
       value: value.from_lovelace(1000000),
-      datum: datum_tag,
+      datum: NoDatum,
       reference_script: None,
     }
 

@@ -113,16 +113,14 @@ test("Purchase (best case scenario)", async (ctx) => {
         lovelace: 1000000n,
       },
     )
-    .payToAddressWithData(
+    .payToAddress(
       ctx.sellerAddr,
-      { inline: datumTag },
       {
         lovelace: 3000000n,
       },
     )
-    .payToAddressWithData(
+    .payToAddress(
       ctx.royaltyAddr,
-      { inline: datumTag },
       {
         lovelace: 1000000n,
       },
@@ -208,16 +206,14 @@ test("Bulk purchase (worst case scenario)", async (ctx) => {
           lovelace: 2000000n,
         },
       )
-      .payToAddressWithData(
+      .payToAddress(
         ctx.sellerAddr,
-        { inline: datumTag },
         {
           lovelace: 96000000n,
         },
       )
-      .payToAddressWithData(
+      .payToAddress(
         ctx.royaltyAddr,
-        { inline: datumTag },
         {
           lovelace: 2000000n,
         },
