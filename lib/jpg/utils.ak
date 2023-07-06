@@ -82,6 +82,7 @@ pub fn check_marketplace_payout(
   output: Output,
   marketplace_fee: Int,
   datum_tag: Datum,
+  can_have_discount: Bool,
 ) -> Bool {
   let Output { address: output_address, value, datum, .. } = output
 
@@ -102,7 +103,12 @@ pub fn check_marketplace_payout(
   // Output value quantity must equal the marketplace fee
   // this prevents people from not paying a fee by submitting
   // transactions not constructed by Jpg.
-  let quantity_check = quantity >= marketplace_fee
+  let quantity_check =
+    if can_have_discount {
+      quantity >= marketplace_fee
+    } else {
+      quantity == 1000000
+    }
 
   datum_check && address_check && quantity_check && policy_check
 }
@@ -129,7 +135,7 @@ test check_marketplace_payout_valid_input() {
       reference_script: None,
     }
 
-  check_marketplace_payout(output, 2000000, datum_tag)
+  check_marketplace_payout(output, 2000000, datum_tag, True)
 }
 
 /// This test makes sure that the marketplace payout
@@ -160,7 +166,7 @@ test check_marketplace_payout_invalid_address() {
       reference_script: None,
     }
 
-  !check_marketplace_payout(output, 2000000, datum_tag)
+  !check_marketplace_payout(output, 2000000, datum_tag, True)
 }
 
 /// This test makes sure that the marketplace payout
@@ -186,7 +192,7 @@ test check_marketplace_payout_incorrect_amount() {
       reference_script: None,
     }
 
-  !check_marketplace_payout(output, 2000000, datum_tag)
+  !check_marketplace_payout(output, 2000000, datum_tag, True)
 }
 
 /// Check that payouts and payout outputs

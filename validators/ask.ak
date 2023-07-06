@@ -1,6 +1,7 @@
 use aiken/builtin.{blake2b_256, serialise_data}
 use aiken/list
 use aiken/transaction.{InlineDatum, NoDatum, ScriptContext, Spend, Transaction}
+use jpg/constants
 use jpg/types.{Payout, VerificationKeyHash}
 use jpg/utils.{check_marketplace_payout, check_payouts, find_payout_outputs}
 
@@ -44,19 +45,26 @@ validator {
     when redeemer is {
       Buy { payout_outputs_offset } -> {
         expect Spend(out_ref) = purpose
+
         // for double satisfaction
         let datum_tag =
           out_ref
             |> serialise_data
             |> blake2b_256
             |> InlineDatum
+
         let Datum { payouts, marketplace_fee, .. } = datum
+
         // Find the `outputs` that correspond to `payouts`.
         let payout_outputs = find_payout_outputs(outputs, payout_outputs_offset)
+
+        let can_have_discount =
+          list.has(extra_signatories, constants.marketplace_vkh)
+
         let has_correct_payouts =
           // If `marketplace_fee` is `0` then we can
           // assume there is no output for it.
-          if marketplace_fee == 0 {
+          if marketplace_fee == 0 && can_have_discount {
             check_payouts(payout_outputs, payouts, datum_tag)
           } else {
             // When there is a marketplace fee we can assume
@@ -69,6 +77,7 @@ validator {
                 marketplace_output,
                 marketplace_fee,
                 datum_tag,
+                can_have_discount,
               )
             has_correct_marketplace_payout && check_payouts(
               rest_outputs,
