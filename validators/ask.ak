@@ -13,8 +13,6 @@ use jpg/utils.{check_marketplace_payout, check_payouts, find_payout_outputs}
 /// marketplace payout in `payouts` even though it will
 /// be in one of the outputs.
 type Datum {
-  /// If set then only this key can buy the listing
-  reserved_for: Option<VerificationKeyHash>,
   /// Does not contain the marketplace payout.
   /// This is usually royalty and seller payouts.
   payouts: List<Payout>,
@@ -52,7 +50,7 @@ validator {
             |> serialise_data
             |> blake2b_256
             |> InlineDatum
-        let Datum { reserved_for, payouts, marketplace_fee, .. } = datum
+        let Datum { payouts, marketplace_fee, .. } = datum
         // Find the `outputs` that correspond to `payouts`.
         let payout_outputs = find_payout_outputs(outputs, payout_outputs_offset)
         let has_correct_payouts =
@@ -78,14 +76,8 @@ validator {
               NoDatum,
             )
           }
-        when reserved_for is {
-          Some(buyer) ->
-            // In addition to payouts, we need to check that
-            // the current buyer matches the buyer that this listing
-            // was reserved for.
-            has_correct_payouts && list.has(extra_signatories, buyer)
-          None -> has_correct_payouts
-        }
+
+        has_correct_payouts
       }
       // There's not much to do here. An asset
       // owner can cancel or update their listing

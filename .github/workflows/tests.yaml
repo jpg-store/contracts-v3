@@ -14,7 +14,7 @@ jobs:
 
       - uses: aiken-lang/setup-aiken@v0.1.0
         with:
-          version: v1.0.10-alpha
+          version: v1.0.11-alpha
 
       - run: aiken fmt --check
       - run: aiken check
@@ -26,5 +26,3 @@ jobs:
 
       - run: deno task e2e
         working-directory: ./e2e
-        env:
-          BLOCKFROST_API_KEY: ${{ secrets.BLOCKFROST_API_KEY }}

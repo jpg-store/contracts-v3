@@ -24,7 +24,6 @@ test("Withdraw ask (best case scenario)", async (ctx) => {
 
   const datum = Data.to(
     new Constr(0, [
-      new Constr(1, []),
       [
         makePayout(ctx.sellerPaymentCredential?.hash!, price - 2000000n),
         makePayout(ctx.royaltyPaymentCredential?.hash!, 1000000n),
@@ -70,7 +69,6 @@ test("Purchase (best case scenario)", async (ctx) => {
 
   const datum = Data.to(
     new Constr(0, [
-      new Constr(1, []),
       [
         makePayout(ctx.sellerPaymentCredential?.hash!, price - 2000000n),
         makePayout(ctx.royaltyPaymentCredential?.hash!, 1000000n),
@@ -147,7 +145,6 @@ test("Bulk purchase (worst case scenario)", async (ctx) => {
 
     const datum = Data.to(
       new Constr(0, [
-        new Constr(1, []),
         [
           makePayout(ctx.sellerPaymentCredential?.hash!, myPrice - 4000000n),
           makePayout(ctx.royaltyPaymentCredential?.hash!, 2000000n),
