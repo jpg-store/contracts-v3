@@ -103,12 +103,7 @@ pub fn check_marketplace_payout(
   // Output value quantity must equal the marketplace fee
   // this prevents people from not paying a fee by submitting
   // transactions not constructed by Jpg.
-  let quantity_check =
-    if can_have_discount {
-      quantity >= marketplace_fee
-    } else {
-      quantity == 1000000
-    }
+  let quantity_check = can_have_discount || quantity >= marketplace_fee
 
   datum_check && address_check && quantity_check && policy_check
 }
