@@ -64,9 +64,7 @@ validator {
         // If `can_have_discount` is `0` then we can
         // assume there is no output for marketplace first.
         if can_have_discount {
-          expect _ = check_payouts(payout_outputs, payouts, datum_tag)
-
-          True
+          check_payouts(payout_outputs, payouts, datum_tag) > 0
         } else {
           // When there is a marketplace fee we can assume
           // it is the first of the `payout_outputs`.
