@@ -226,7 +226,7 @@ pub fn check_payouts(
   // The quantity in the output must equal
   // the amount specified in the corresponding
   // payout from the datum.
-  expect True = quantity >= amount_lovelace
+  expect True = quantity >= amount_lovelace && amount_lovelace > 0
 
   let rest_payouts_amount =
     when rest_payouts is {

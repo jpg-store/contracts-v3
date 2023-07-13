@@ -28,7 +28,6 @@ test("Withdraw ask (best case scenario)", async (ctx) => {
         makePayout(ctx.sellerPaymentCredential?.hash!, price - 2000000n),
         makePayout(ctx.royaltyPaymentCredential?.hash!, 1000000n),
       ],
-      1000000n,
       ctx.sellerPaymentCredential?.hash!,
     ]),
   );
@@ -73,7 +72,6 @@ test("Purchase (best case scenario)", async (ctx) => {
         makePayout(ctx.sellerPaymentCredential?.hash!, price - 2000000n),
         makePayout(ctx.royaltyPaymentCredential?.hash!, 1000000n),
       ],
-      1000000n,
       ctx.sellerPaymentCredential?.hash!,
     ]),
   );
@@ -149,7 +147,6 @@ test("Bulk purchase (worst case scenario)", async (ctx) => {
           makePayout(ctx.sellerPaymentCredential?.hash!, myPrice - 4000000n),
           makePayout(ctx.royaltyPaymentCredential?.hash!, 2000000n),
         ],
-        2000000n,
         ctx.sellerPaymentCredential?.hash!,
       ]),
     );
@@ -221,4 +218,143 @@ test("Bulk purchase (worst case scenario)", async (ctx) => {
   const signed4 = await completed.sign().complete();
 
   return signed4;
+});
+
+testFail("Purchase (fee too low)", async (ctx) => {
+  ctx.lucid.selectWalletFromPrivateKey(ctx.sellerPk);
+
+  const datum = Data.to(
+    new Constr(0, [
+      [
+        makePayout(ctx.sellerPaymentCredential?.hash!, 97_000_000n),
+        makePayout(ctx.royaltyPaymentCredential?.hash!, 1_000_000n),
+      ],
+      ctx.sellerPaymentCredential?.hash!,
+    ]),
+  );
+
+  // first tx -- list
+  const tx = await ctx.lucid
+    .newTx()
+    .payToContract(ctx.contractAddress, { asHash: datum }, singleAsset)
+    .complete();
+
+  const signed = await tx.sign().complete();
+
+  await signed.submit();
+
+  ctx.emulator.awaitBlock(4);
+
+  ctx.lucid.selectWalletFromPrivateKey(ctx.buyerPk);
+
+  const datumTag = Data.to(toHex(C.hash_blake2b256(fromHex(Data.to(
+    new Constr(0, [new Constr(0, [tx.toHash()]), BigInt(0)]),
+  )))));
+
+  const contractUtxos = await ctx.lucid.utxosAt(ctx.contractAddress);
+
+  const refUtxos = await ctx.lucid.utxosAt(ctx.refAddr);
+
+  const tx3 = await ctx.lucid
+    .newTx()
+    .collectFrom(contractUtxos, buyRedeemer(0))
+    .readFrom(refUtxos)
+    .payToAddressWithData(
+      marketplaceAddr,
+      { inline: datumTag },
+      {
+        lovelace: 1_000_000n,
+      },
+    )
+    .payToAddress(
+      ctx.sellerAddr,
+      {
+        lovelace: 97_000_000n,
+      },
+    )
+    .payToAddress(
+      ctx.royaltyAddr,
+      {
+        lovelace: 1_000_000n,
+      },
+    )
+    .addSigner(ctx.buyerAddr)
+    .complete();
+
+  const signed3 = await tx3.sign().complete();
+
+  return signed3;
+});
+
+testFail("Purchase (negative payouts)", async (ctx) => {
+  ctx.lucid.selectWalletFromPrivateKey(ctx.sellerPk);
+
+  const datum = Data.to(
+    new Constr(0, [
+      [
+        makePayout(ctx.sellerPaymentCredential?.hash!, 97_000_000n),
+        makePayout(ctx.royaltyPaymentCredential?.hash!, 1_000_000n),
+        makePayout(ctx.royaltyPaymentCredential?.hash!, -100_000_000n),
+      ],
+      ctx.sellerPaymentCredential?.hash!,
+    ]),
+  );
+
+  // first tx -- list
+  const tx = await ctx.lucid
+    .newTx()
+    .payToContract(ctx.contractAddress, { asHash: datum }, singleAsset)
+    .complete();
+
+  const signed = await tx.sign().complete();
+
+  await signed.submit();
+
+  ctx.emulator.awaitBlock(4);
+
+  ctx.lucid.selectWalletFromPrivateKey(ctx.buyerPk);
+
+  const datumTag = Data.to(toHex(C.hash_blake2b256(fromHex(Data.to(
+    new Constr(0, [new Constr(0, [tx.toHash()]), BigInt(0)]),
+  )))));
+
+  const contractUtxos = await ctx.lucid.utxosAt(ctx.contractAddress);
+
+  const refUtxos = await ctx.lucid.utxosAt(ctx.refAddr);
+
+  const tx3 = await ctx.lucid
+    .newTx()
+    .collectFrom(contractUtxos, buyRedeemer(0))
+    .readFrom(refUtxos)
+    .payToAddressWithData(
+      marketplaceAddr,
+      { inline: datumTag },
+      {
+        lovelace: 1_000_000n,
+      },
+    )
+    .payToAddress(
+      ctx.sellerAddr,
+      {
+        lovelace: 97_000_000n,
+      },
+    )
+    .payToAddress(
+      ctx.royaltyAddr,
+      {
+        lovelace: 1_000_000n,
+      },
+    )
+    .payToAddress(
+      ctx.royaltyAddr,
+      {
+        lovelace: 1_000_000n,
+      },
+    )
+    .addSigner(ctx.buyerAddr)
+    .complete();
+
+  const signed3 = await tx3.sign().complete();
+
+  return signed3;
 });

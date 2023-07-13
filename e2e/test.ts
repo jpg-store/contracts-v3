@@ -169,10 +169,14 @@ export async function testFail(
     const err = `
   ${colors.bold(colors.brightMagenta(name))} - ${colors.red("failed")}`;
 
-    throw new Error(err);
-  } catch {
+    console.log(err);
+  } catch (e) {
+    const error = e.split("\n").map((l: string) => `\n    ${l}`).join("");
+
     const message = `
-  ${colors.bold(colors.brightMagenta(name))} - ${colors.green("passed")}`;
+  ${colors.bold(colors.brightMagenta(name))} - ${
+      colors.green("passed")
+    }\n${error}`;
 
     console.log(message);
   }

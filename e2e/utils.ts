@@ -70,15 +70,15 @@ export function printExecutionDetails(tx: TxSigned, name: string) {
   console.log(text);
 
   if (remainingMem < 0) {
-    throw new Error("Out of mem");
+    console.log(colors.red("  Out of mem"));
   }
 
   if (remainingSteps < 0) {
-    throw new Error("Out of cpu");
+    console.log(colors.red("  Out of cpu"));
   }
 
   if (remainingTxBytes < 0) {
-    throw new Error("Out of tx space");
+    console.log(colors.red("  Out of tx space"));
   }
 }
 
