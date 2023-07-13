@@ -5,7 +5,7 @@ use aiken/transaction.{
   Datum, InlineDatum, NoDatum, Output, OutputReference, TransactionId,
 }
 use aiken/transaction/credential.{Address, VerificationKeyCredential}
-use aiken/transaction/value.{to_dict}
+use aiken/transaction/value.{ada_policy_id, to_dict}
 use jpg/constants.{marketplace_addr}
 use jpg/types.{Payout}
 
@@ -71,9 +71,9 @@ test skip_10_items_1() {
   skip_10_items([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]) == [11]
 }
 
-/// This function is used only if `marketplace_fee`
-/// is greater than `0`. The main different from
-/// `check_payouts` is that we make sure the
+/// This function is used only if a discount
+/// is not allowed (tx not signed by jpg). The main difference
+/// from `check_payouts` is that we make sure the
 /// output address matches a hardcoded marketplace address
 /// along with confirming that the output value equals
 /// the marketplace_fee. In this case there is no `Payout`
@@ -82,7 +82,6 @@ pub fn check_marketplace_payout(
   output: Output,
   marketplace_fee: Int,
   datum_tag: Datum,
-  can_have_discount: Bool,
 ) -> Bool {
   let Output { address: output_address, value, datum, .. } = output
 
@@ -98,12 +97,12 @@ pub fn check_marketplace_payout(
 
   expect [(_, quantity)] = dict.to_list(tokens)
 
-  let policy_check = policy == ""
+  let policy_check = policy == ada_policy_id
 
   // Output value quantity must equal the marketplace fee
   // this prevents people from not paying a fee by submitting
   // transactions not constructed by Jpg.
-  let quantity_check = can_have_discount || quantity >= marketplace_fee
+  let quantity_check = quantity >= marketplace_fee
 
   datum_check && address_check && quantity_check && policy_check
 }
@@ -130,7 +129,7 @@ test check_marketplace_payout_valid_input() {
       reference_script: None,
     }
 
-  check_marketplace_payout(output, 2000000, datum_tag, True)
+  check_marketplace_payout(output, 2000000, datum_tag)
 }
 
 /// This test makes sure that the marketplace payout
@@ -161,7 +160,7 @@ test check_marketplace_payout_invalid_address() {
       reference_script: None,
     }
 
-  !check_marketplace_payout(output, 2000000, datum_tag, True)
+  !check_marketplace_payout(output, 2000000, datum_tag)
 }
 
 /// This test makes sure that the marketplace payout
@@ -187,7 +186,7 @@ test check_marketplace_payout_incorrect_amount() {
       reference_script: None,
     }
 
-  !check_marketplace_payout(output, 2000000, datum_tag, True)
+  !check_marketplace_payout(output, 2000000, datum_tag)
 }
 
 /// Check that payouts and payout outputs
@@ -195,55 +194,52 @@ test check_marketplace_payout_incorrect_amount() {
 /// when assets are listed. On buy a transaction
 /// with matching payout outputs needs to be constructed.
 /// We also require that outputs are in the same order as the
-/// payouts in the datum.
+/// payouts in the datum. Returns the sum of the payout amounts.
 pub fn check_payouts(
   outputs: List<Output>,
   payouts: List<Payout>,
   datum_tag: Datum,
-) -> Bool {
+) -> Int {
   expect [first_output, ..rest_outputs] = outputs
 
   let Output { address: output_address, value, datum, .. } = first_output
 
-  if datum == datum_tag {
-    expect [payout, ..rest_payouts] = payouts
+  expect True = datum == datum_tag
 
-    let Payout { address: payout_address, amount_lovelace } = payout
+  expect [payout, ..rest_payouts] = payouts
 
-    // The `Output` address must match
-    // the address specified in the corresponding
-    // payout from the datum.
-    let address_check = payout_address == output_address
+  let Payout { address: payout_address, amount_lovelace } = payout
 
-    expect [(policy, tokens)] =
-      value
-        |> to_dict
-        |> dict.to_list
+  // The `Output` address must match
+  // the address specified in the corresponding
+  // payout from the datum.
+  expect True = payout_address == output_address
 
-    expect [(_, quantity)] = dict.to_list(tokens)
+  expect [(policy, tokens)] =
+    value
+      |> to_dict
+      |> dict.to_list
 
-    let policy_check = policy == ""
+  expect [(_, quantity)] = dict.to_list(tokens)
 
-    // The quantity in the output must equal
-    // the amount specified in the corresponding
-    // payout from the datum.
-    let quantity_check = quantity >= amount_lovelace
+  expect True = policy == ada_policy_id
+  // The quantity in the output must equal
+  // the amount specified in the corresponding
+  // payout from the datum.
+  expect True = quantity >= amount_lovelace
 
-    let rest_outputs_check =
-      when rest_payouts is {
-        // the base case
-        [] ->
-          // if rest is empty we are done
-          True
-        _ ->
-          // continue with remaining outputs and payouts
-          check_payouts(rest_outputs, rest_payouts, NoDatum)
-      }
+  let rest_payouts_amount =
+    when rest_payouts is {
+      // the base case
+      [] ->
+        // if rest is empty we are done
+        0
+      _ ->
+        // continue with remaining outputs and payouts
+        check_payouts(rest_outputs, rest_payouts, NoDatum)
+    }
 
-    address_check && policy_check && quantity_check && rest_outputs_check
-  } else {
-    False
-  }
+  amount_lovelace + rest_payouts_amount
 }
 
 /// This test makes sure the `check_payouts` returns true
@@ -315,13 +311,13 @@ test check_payouts_with_trailing_outputs() {
 
   let outputs = list.concat([out_1, out_2], list.repeat(out_random, 100))
 
-  check_payouts(outputs, test_royalty_payouts, datum_tag)
+  98000000 == check_payouts(outputs, test_royalty_payouts, datum_tag)
 }
 
 /// This test makes sure that `check_payouts` returns `False` when
 /// the payout outputs are not sequential. If a random output is in between
 /// payout outputs then the transaction was constructed incorrectly.
-test check_payouts_with_mixed_outputs() {
+!test check_payouts_with_mixed_outputs() {
   let test_royalty_addr =
     Address {
       payment_credential: VerificationKeyCredential(
@@ -385,14 +381,18 @@ test check_payouts_with_mixed_outputs() {
       reference_script: None,
     }
 
-  !check_payouts([out_1, out_random, out_2], test_royalty_payouts, datum_tag)
+  98000000 == check_payouts(
+    [out_1, out_random, out_2],
+    test_royalty_payouts,
+    datum_tag,
+  )
 }
 
 /// This test checks that the check_payouts function works correctly when
 /// when the output list has leading outputs that are not part of the
 /// payouts. It should return `False` because we expect the leading outputs
 /// to have been filtered out before using this function.
-test check_payouts_with_leading_outputs() {
+!test check_payouts_with_leading_outputs() {
   let test_royalty_addr =
     Address {
       payment_credential: VerificationKeyCredential(
@@ -458,12 +458,12 @@ test check_payouts_with_leading_outputs() {
 
   let outputs = list.concat(list.repeat(out_random, 100), [out_1, out_2])
 
-  !check_payouts(outputs, test_royalty_payouts, datum_tag)
+  98000000 == check_payouts(outputs, test_royalty_payouts, datum_tag)
 }
 
 /// If the payout output value does not match the datum payout amount
 /// then `check_payouts` should return `False`.
-test check_payouts_with_wrong_amounts() {
+!test check_payouts_with_wrong_amounts() {
   let test_royalty_addr =
     Address {
       payment_credential: VerificationKeyCredential(
@@ -529,12 +529,12 @@ test check_payouts_with_wrong_amounts() {
 
   let outputs = list.concat([out_1, out_2], list.repeat(out_random, 100))
 
-  !check_payouts(outputs, test_royalty_payouts, datum_tag)
+  98000000 == check_payouts(outputs, test_royalty_payouts, datum_tag)
 }
 
 /// If the payout output address does not match the datum payout address 
 /// then `check_payouts` should return `False`.
-test check_payouts_with_wrong_address() {
+!test check_payouts_with_wrong_address() {
   let test_royalty_addr =
     Address {
       payment_credential: VerificationKeyCredential(
@@ -605,7 +605,7 @@ test check_payouts_with_wrong_address() {
 
   let outputs = list.concat([out_1, out_2], list.repeat(out_random, 100))
 
-  !check_payouts(outputs, test_royalty_payouts, datum_tag)
+  98000000 == check_payouts(outputs, test_royalty_payouts, datum_tag)
 }
 
 /// Test that things work with a single payout
@@ -656,5 +656,5 @@ test check_payouts_with_single_payout() {
 
   let outputs = list.concat([out_1], list.repeat(out_random, 100))
 
-  check_payouts(outputs, test_royalty_payouts, datum_tag)
+  3000000 == check_payouts(outputs, test_royalty_payouts, datum_tag)
 }

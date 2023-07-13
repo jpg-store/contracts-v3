@@ -18,7 +18,6 @@ type Datum {
   /// This is usually royalty and seller payouts.
   payouts: List<Payout>,
   /// Flexible to allow discounts
-  marketplace_fee: Int,
   /// The key that listed the NFT
   owner: VerificationKeyHash,
 }
@@ -53,41 +52,40 @@ validator {
             |> blake2b_256
             |> InlineDatum
 
-        let Datum { payouts, marketplace_fee, .. } = datum
+        let Datum { payouts, .. } = datum
 
         // Find the `outputs` that correspond to `payouts`.
         let payout_outputs = find_payout_outputs(outputs, payout_outputs_offset)
 
         let can_have_discount =
-          list.has(extra_signatories, constants.marketplace_vkh)
+          constants.authorizers()
+            |> list.any(fn(authorizer) { list.has(extra_signatories, authorizer) })
 
-        let has_correct_payouts =
-          // If `marketplace_fee` is `0` then we can
-          // assume there is no output for it.
-          if marketplace_fee == 0 && can_have_discount {
-            check_payouts(payout_outputs, payouts, datum_tag)
-          } else {
-            // When there is a marketplace fee we can assume
-            // it is the first of the `payout_outputs`.
-            expect [marketplace_output, ..rest_outputs] = payout_outputs
-            // Make sure that the marketplace output
-            // is correct.
-            let has_correct_marketplace_payout =
-              check_marketplace_payout(
-                marketplace_output,
-                marketplace_fee,
-                datum_tag,
-                can_have_discount,
-              )
-            has_correct_marketplace_payout && check_payouts(
-              rest_outputs,
-              payouts,
-              NoDatum,
-            )
-          }
+        // If `can_have_discount` is `0` then we can
+        // assume there is no output for marketplace first.
+        if can_have_discount {
+          expect _ = check_payouts(payout_outputs, payouts, datum_tag)
 
-        has_correct_payouts
+          True
+        } else {
+          // When there is a marketplace fee we can assume
+          // it is the first of the `payout_outputs`.
+          expect [marketplace_output, ..rest_outputs] = payout_outputs
+
+          let payouts_sum = check_payouts(rest_outputs, payouts, NoDatum)
+
+          let marketplace_fee = payouts_sum * 50 / 49 / 50
+
+          // Make sure that the marketplace output
+          // is correct.
+          check_marketplace_payout(
+            marketplace_output,
+            marketplace_fee,
+            datum_tag,
+          )
+        }
       }
+
       // There's not much to do here. An asset
       // owner can cancel or update their listing
       // at any time.
