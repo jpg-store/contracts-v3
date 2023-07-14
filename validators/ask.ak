@@ -9,8 +9,7 @@ use jpg/utils.{check_marketplace_payout, check_payouts, find_payout_outputs}
 /// the owner's payment key and a list of payouts.
 /// The optional `reserver_for` allows for peer to peer
 /// trading where the buyer must match the
-/// private buyer payment key. Since the datum expects
-/// a marketplace fee, we do not need to specify the
+/// private buyer payment key. We do not need to specify the
 /// marketplace payout in `payouts` even though it will
 /// be in one of the outputs.
 type Datum {
@@ -57,12 +56,14 @@ validator {
         // Find the `outputs` that correspond to `payouts`.
         let payout_outputs = find_payout_outputs(outputs, payout_outputs_offset)
 
+        // We can ignore the fee check
+        // if any of the authorizers have signed the tx.
         let can_have_discount =
           constants.authorizers()
             |> list.any(fn(authorizer) { list.has(extra_signatories, authorizer) })
 
-        // If `can_have_discount` is `0` then we can
-        // assume there is no output for marketplace first.
+        // If `can_have_discount` is `True` then we can
+        // assume that jpg properly calculated the fee off chain.
         if can_have_discount {
           check_payouts(payout_outputs, payouts, datum_tag) > 0
         } else {
