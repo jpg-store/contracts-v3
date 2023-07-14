@@ -317,7 +317,7 @@ test check_payouts_with_trailing_outputs() {
 /// This test makes sure that `check_payouts` returns `False` when
 /// the payout outputs are not sequential. If a random output is in between
 /// payout outputs then the transaction was constructed incorrectly.
-!test check_payouts_with_mixed_outputs() {
+test check_payouts_with_mixed_outputs() fail {
   let test_royalty_addr =
     Address {
       payment_credential: VerificationKeyCredential(
@@ -392,7 +392,7 @@ test check_payouts_with_trailing_outputs() {
 /// when the output list has leading outputs that are not part of the
 /// payouts. It should return `False` because we expect the leading outputs
 /// to have been filtered out before using this function.
-!test check_payouts_with_leading_outputs() {
+test check_payouts_with_leading_outputs() fail {
   let test_royalty_addr =
     Address {
       payment_credential: VerificationKeyCredential(
@@ -463,7 +463,7 @@ test check_payouts_with_trailing_outputs() {
 
 /// If the payout output value does not match the datum payout amount
 /// then `check_payouts` should return `False`.
-!test check_payouts_with_wrong_amounts() {
+test check_payouts_with_wrong_amounts() fail {
   let test_royalty_addr =
     Address {
       payment_credential: VerificationKeyCredential(
@@ -534,7 +534,7 @@ test check_payouts_with_trailing_outputs() {
 
 /// If the payout output address does not match the datum payout address 
 /// then `check_payouts` should return `False`.
-!test check_payouts_with_wrong_address() {
+test check_payouts_with_wrong_address() fail {
   let test_royalty_addr =
     Address {
       payment_credential: VerificationKeyCredential(
