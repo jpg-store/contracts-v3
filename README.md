@@ -18,6 +18,9 @@ Aiken.
 There are two main contracts: Bid and Ask. Bids are offerings in ADA in exchange
 for a given asset, asks are assets in exchange for ADA.
 
+Ask bulk-purchase currently maxes out at **54** assets in a single transaction when running
+the e2e tests.
+
 ## Ask
 
 ### Important/Breaking changes
