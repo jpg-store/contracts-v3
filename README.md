@@ -32,3 +32,11 @@ pub type OutputReference {
   output_index: Int,
 }
 ```
+
+## Development
+
+- install [Aiken](https://aiken-lang.org/installation-instructions)
+- `aiken check`
+- `cd e2e && deno task e2e`
+
+> If you change any Aiken code please run `aiken build` and commit the `plutus.json` file.
