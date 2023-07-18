@@ -205,7 +205,6 @@ pub fn check_payouts(
   let Output { address: output_address, value, datum, .. } = first_output
 
   expect datum == datum_tag
-
   expect [payout, ..rest_payouts] = payouts
 
   let Payout { address: payout_address, amount_lovelace } = payout
@@ -214,7 +213,6 @@ pub fn check_payouts(
   // the address specified in the corresponding
   // payout from the datum.
   expect payout_address == output_address
-
   expect [(policy, tokens)] =
     value
       |> to_dict
@@ -227,7 +225,6 @@ pub fn check_payouts(
   // the amount specified in the corresponding
   // payout from the datum.
   expect quantity >= amount_lovelace && amount_lovelace > 0
-
   let rest_payouts_amount =
     when rest_payouts is {
       // the base case
