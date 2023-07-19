@@ -38,7 +38,7 @@ const marketplacePkh =
   "70e60f3b5ea7153e0acc7a803e4401d44b8ed1bae1c7baaad1a62a72";
 
 const marketplaceStakePkh =
-  "1e78aae7c90cc36d624f7b3bb6d86b52696dc84e490f343eba89005f";
+  "81728e7ed4cf324e1323135e7e6d931f01e30792d9cdf17129cb806d";
 
 export const BULK_PURCHASE_SIZE = 54;
 
@@ -59,14 +59,14 @@ export const bulkPurchaseAssets: Assets = new Array(BULK_PURCHASE_SIZE)
 export const marketplaceAddr = C.BaseAddress.new(
   0,
   C.StakeCredential.from_keyhash(C.Ed25519KeyHash.from_hex(marketplacePkh)),
-  C.StakeCredential.from_keyhash(C.Ed25519KeyHash.from_hex(marketplaceStakePkh))
-)
-  .to_address()
-  .to_bech32("addr_test");
+  C.StakeCredential.from_keyhash(
+    C.Ed25519KeyHash.from_hex(marketplaceStakePkh),
+  ),
+).to_address().to_bech32("addr_test");
 
 export async function test(
   name: string,
-  fn: (ctx: TestContext) => Promise<TxSigned>
+  fn: (ctx: TestContext) => Promise<TxSigned>,
 ) {
   const sellerPk = generatePrivateKey();
   const refPk = generatePrivateKey();
@@ -79,7 +79,9 @@ export async function test(
     .selectWalletFromPrivateKey(sellerPk)
     .wallet.address();
 
-  const refAddr = await l.selectWalletFromPrivateKey(refPk).wallet.address();
+  const refAddr = await l
+    .selectWalletFromPrivateKey(refPk)
+    .wallet.address();
 
   const royaltyAddr = await l
     .selectWalletFromPrivateKey(royaltyPk)
@@ -89,10 +91,12 @@ export async function test(
     .selectWalletFromPrivateKey(buyerPk)
     .wallet.address();
 
-  const { paymentCredential: sellerPaymentCredential } =
-    getAddressDetails(sellerAddr);
-  const { paymentCredential: royaltyPaymentCredential } =
-    getAddressDetails(royaltyAddr);
+  const { paymentCredential: sellerPaymentCredential } = getAddressDetails(
+    sellerAddr,
+  );
+  const { paymentCredential: royaltyPaymentCredential } = getAddressDetails(
+    royaltyAddr,
+  );
 
   const emulator = new Emulator(
     [
@@ -115,7 +119,7 @@ export async function test(
     ],
     {
       ...PROTOCOL_PARAMETERS_DEFAULT,
-    }
+    },
   );
 
   const lucid = await Lucid.new(emulator);
@@ -126,13 +130,9 @@ export async function test(
 
   const txRef = await lucid
     .newTx()
-    .payToAddressWithData(
-      refAddr,
-      { scriptRef: validator },
-      {
-        lovelace: 100000000n,
-      }
-    )
+    .payToAddressWithData(refAddr, { scriptRef: validator }, {
+      lovelace: 100000000n,
+    })
     .complete();
 
   const signedRef = await txRef.sign().complete();
@@ -161,7 +161,7 @@ export async function test(
 
 export async function testFail(
   name: string,
-  fn: (ctx: TestContext) => Promise<TxSigned>
+  fn: (ctx: TestContext) => Promise<TxSigned>,
 ) {
   try {
     await test(name, fn);
@@ -171,15 +171,12 @@ export async function testFail(
 
     console.log(err);
   } catch (e) {
-    const error = e
-      .split("\n")
-      .map((l: string) => `\n    ${l}`)
-      .join("");
+    const error = e.split("\n").map((l: string) => `\n    ${l}`).join("");
 
     const message = `
-  ${colors.bold(colors.brightMagenta(name))} - ${colors.green(
-      "passed"
-    )}\n${error}`;
+  ${colors.bold(colors.brightMagenta(name))} - ${
+      colors.green("passed")
+    }\n${error}`;
 
     console.log(message);
   }
