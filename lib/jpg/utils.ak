@@ -233,7 +233,47 @@ pub fn check_payouts(
         0
       _ ->
         // continue with remaining outputs and payouts
-        check_payouts(rest_outputs, rest_payouts, NoDatum)
+        check_payouts_aux(rest_outputs, rest_payouts)
+    }
+
+  amount_lovelace + rest_payouts_amount
+}
+
+pub fn check_payouts_aux(outputs: List<Output>, payouts: List<Payout>) -> Int {
+  expect [first_output, ..rest_outputs] = outputs
+
+  let Output { address: output_address, value, datum, .. } = first_output
+
+  expect datum == NoDatum
+  expect [payout, ..rest_payouts] = payouts
+
+  let Payout { address: payout_address, amount_lovelace } = payout
+
+  // The `Output` address must match
+  // the address specified in the corresponding
+  // payout from the datum.
+  expect payout_address == output_address
+  expect [(policy, tokens)] =
+    value
+      |> to_dict
+      |> dict.to_list
+
+  expect [(_, quantity)] = dict.to_list(tokens)
+
+  expect policy == ada_policy_id
+  // The quantity in the output must equal
+  // the amount specified in the corresponding
+  // payout from the datum.
+  expect quantity >= amount_lovelace && amount_lovelace > 0
+  let rest_payouts_amount =
+    when rest_payouts is {
+      // the base case
+      [] ->
+        // if rest is empty we are done
+        0
+      _ ->
+        // continue with remaining outputs and payouts
+        check_payouts_aux(rest_outputs, rest_payouts)
     }
 
   amount_lovelace + rest_payouts_amount

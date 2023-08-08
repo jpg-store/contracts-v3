@@ -71,6 +71,8 @@ validator {
 
           let payouts_sum = check_payouts(rest_outputs, payouts, NoDatum)
 
+          // This approximates the marketplace fee given only the payouts to a very high degree.
+          // For a payouts in excess of 100k ada the error is less than 40000 lovelace.
           let marketplace_fee = payouts_sum * 50 / 49 / 50
 
           // Make sure that the marketplace output
