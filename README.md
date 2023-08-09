@@ -25,16 +25,7 @@ the e2e tests.
 
 ### Important/Breaking changes
 
-- Output tagging is introduced to prevent double satisfaction. For every output
-  corresponding to a payout or marketplace fee output, a datum hash made from
-  `OutputReference` must be created:
-
-```gleam
-pub type OutputReference {
-  transaction_id: TransactionId,
-  output_index: Int,
-}
-```
+Check out our [medium post](https://medium.com/@jpgstorenft/unveiling-the-next-gen-smart-contract-update-for-jpg-store-2f883c913979)
 
 ## Development
 
