@@ -40,7 +40,7 @@ const marketplacePkh =
 const marketplaceStakePkh =
   "81728e7ed4cf324e1323135e7e6d931f01e30792d9cdf17129cb806d";
 
-export const BULK_PURCHASE_SIZE = 54;
+export const BULK_PURCHASE_SIZE = 52;
 
 const validator = readValidator();
 

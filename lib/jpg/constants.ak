@@ -17,7 +17,10 @@ pub fn marketplace_addr() -> Address {
 }
 
 pub fn authorizers() -> List<VerificationKeyHash> {
-  []
+  [
+    #"15df89fe62968415bac4de9d8576da39c34db4717f46332572aca3eb",
+    #"53391ebae9fa352a1108e2769df9baf0d3efcab0f49404bd6ac56bd4",
+  ]
 }
 
 pub const marketplace_pct: Int = 20
