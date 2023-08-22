@@ -38,7 +38,7 @@ const marketplacePkh =
   "70e60f3b5ea7153e0acc7a803e4401d44b8ed1bae1c7baaad1a62a72";
 
 const marketplaceStakePkh =
-  "81728e7ed4cf324e1323135e7e6d931f01e30792d9cdf17129cb806d";
+  "1e78aae7c90cc36d624f7b3bb6d86b52696dc84e490f343eba89005f";
 
 export const BULK_PURCHASE_SIZE = 52;
 
