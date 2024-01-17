@@ -43,6 +43,7 @@ const marketplaceStakePkh =
 export const BULK_PURCHASE_SIZE = 52;
 
 const validator = readValidator();
+console.log(validator);
 
 export const singleAsset = {
   ["627c22b8a13e0f7dad08ea3cc25ac6f254822acf9ded1b52b8578b413d0acfbf35c28c6346d8de3e27b7ebeab19022a24d9cedb87e08078b03a6dd13"]:
@@ -59,9 +60,7 @@ export const bulkPurchaseAssets: Assets = new Array(BULK_PURCHASE_SIZE)
 export const marketplaceAddr = C.BaseAddress.new(
   0,
   C.StakeCredential.from_scripthash(C.ScriptHash.from_hex(marketplacePkh)),
-  C.StakeCredential.from_scripthash(
-    C.ScriptHash.from_hex(marketplaceStakePkh),
-  ),
+  C.StakeCredential.from_scripthash(C.ScriptHash.from_hex(marketplaceStakePkh)),
 )
   .to_address()
   .to_bech32("addr_test");
